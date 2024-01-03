@@ -3,8 +3,8 @@
 ///
 #[derive(Copy, Clone, Debug)]
 pub struct FrameSize {
-    pub width:  usize,
-    pub height: usize,    
+    pub width: usize,
+    pub height: usize,
 }
 
 ///
@@ -14,9 +14,9 @@ pub struct FrameSize {
 ///
 #[derive(Copy, Clone, Debug)]
 pub struct GammaFrameSize {
-    pub width:  usize,
-    pub height: usize,    
-    pub gamma:  f64,
+    pub width: usize,
+    pub height: usize,
+    pub gamma: f64,
 }
 
 ///
@@ -25,19 +25,20 @@ pub struct GammaFrameSize {
 impl From<FrameSize> for GammaFrameSize {
     #[inline]
     fn from(frame_size: FrameSize) -> GammaFrameSize {
-        GammaFrameSize { 
-            width:  frame_size.width, 
-            height: frame_size.height, 
-            gamma:  2.2 }
+        GammaFrameSize {
+            width: frame_size.width,
+            height: frame_size.height,
+            gamma: 2.2,
+        }
     }
 }
 
 impl From<GammaFrameSize> for FrameSize {
     #[inline]
     fn from(frame_size: GammaFrameSize) -> FrameSize {
-        FrameSize { 
-            width:  frame_size.width, 
-            height: frame_size.height
+        FrameSize {
+            width: frame_size.width,
+            height: frame_size.height,
         }
     }
 }

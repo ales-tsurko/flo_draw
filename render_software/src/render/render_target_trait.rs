@@ -1,5 +1,5 @@
-use super::renderer::*;
 use super::render_slice::*;
+use super::renderer::*;
 
 ///
 /// Trait implemented by types that can act as a render target
@@ -22,7 +22,10 @@ pub trait RenderTarget<IntermediatePixel: 'static> {
     ///
     /// The renderer that is passed in here is a region renderer, which takes a list of y-positions and generates the pixels for those rows in the results.
     ///
-    fn render<TRegionRenderer>(&mut self, region_renderer: TRegionRenderer, source_data: &TRegionRenderer::Source)
-    where
-        TRegionRenderer: Renderer<Region=RenderSlice, Dest=[IntermediatePixel]>;
+    fn render<TRegionRenderer>(
+        &mut self,
+        region_renderer: TRegionRenderer,
+        source_data: &TRegionRenderer::Source,
+    ) where
+        TRegionRenderer: Renderer<Region = RenderSlice, Dest = [IntermediatePixel]>;
 }

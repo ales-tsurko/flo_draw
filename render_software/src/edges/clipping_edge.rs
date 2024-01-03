@@ -9,7 +9,7 @@ use std::sync::*;
 /// A clipping region, defined by an edge description
 ///
 #[derive(Clone)]
-pub struct ClipRegion<TEdge> 
+pub struct ClipRegion<TEdge>
 where
     TEdge: EdgeDescriptor,
 {
@@ -26,8 +26,8 @@ where
 #[derive(Clone)]
 pub struct ClippedShapeEdge<TEdge, TRegionEdge>
 where
-    TEdge:          Clone + EdgeDescriptor,
-    TRegionEdge:    Clone + EdgeDescriptor,
+    TEdge: Clone + EdgeDescriptor,
+    TRegionEdge: Clone + EdgeDescriptor,
 {
     /// The ID of the shape
     shape_id: ShapeId,
@@ -69,10 +69,7 @@ where
 
         let bounds = ((min_x, min_y), (max_x, max_y));
 
-        ClipRegion { 
-            region,
-            bounds
-        }
+        ClipRegion { region, bounds }
     }
 
     ///
@@ -80,7 +77,14 @@ where
     ///
     pub fn to_object(self) -> ClipRegion<Arc<dyn EdgeDescriptor>> {
         ClipRegion {
-            region: self.region.into_iter().map(|edge| { let edge: Arc<dyn EdgeDescriptor> = Arc::new(edge); edge }).collect(),
+            region: self
+                .region
+                .into_iter()
+                .map(|edge| {
+                    let edge: Arc<dyn EdgeDescriptor> = Arc::new(edge);
+                    edge
+                })
+                .collect(),
             bounds: self.bounds,
         }
     }
@@ -90,50 +94,55 @@ where
     ///
     fn transform(&self, transform: &canvas::Transform2D) -> ClipRegion<Arc<dyn EdgeDescriptor>> {
         // Transform the edges in the region
-        let region = self.region.iter()
+        let region = self
+            .region
+            .iter()
             .map(|edge| edge.transform(transform))
             .collect::<Vec<_>>();
 
         // Recompute the bounding box
-        let bounds = region.iter()
-            .fold(((f64::MAX, f64::MAX), (f64::MIN, f64::MIN)), |((xa1, ya1), (xa2, ya2)), edge| {
+        let bounds = region.iter().fold(
+            ((f64::MAX, f64::MAX), (f64::MIN, f64::MIN)),
+            |((xa1, ya1), (xa2, ya2)), edge| {
                 let ((xb1, yb1), (xb2, yb2)) = edge.bounding_box();
 
                 ((xa1.min(xb1), ya1.min(yb1)), (xa2.max(xb2), ya2.max(yb2)))
-            });
+            },
+        );
 
-        ClipRegion {
-            region,
-            bounds
-        }
+        ClipRegion { region, bounds }
     }
 }
 
 impl<TEdge, TRegionEdge> ClippedShapeEdge<TEdge, TRegionEdge>
 where
-    TEdge:          Clone + EdgeDescriptor,
-    TRegionEdge:    Clone + EdgeDescriptor,
+    TEdge: Clone + EdgeDescriptor,
+    TRegionEdge: Clone + EdgeDescriptor,
 {
     ///
     /// Creates a new shape with a clipping region
     ///
     /// For the clipping algorithm to work properly, we need a complete closed shape and not just individual edges.
     ///
-    pub fn new(shape_id: ShapeId, region: Arc<ClipRegion<TRegionEdge>>, shape_edges: Vec<TEdge>) -> Self {
+    pub fn new(
+        shape_id: ShapeId,
+        region: Arc<ClipRegion<TRegionEdge>>,
+        shape_edges: Vec<TEdge>,
+    ) -> Self {
         // The clip region bounds will be larger or the same as the bounds for the resulting edge
         ClippedShapeEdge {
-            shape_bounds:   region.bounds,
-            shape_id:       shape_id, 
-            region:         region, 
-            shape_edges:    shape_edges,
+            shape_bounds: region.bounds,
+            shape_id: shape_id,
+            region: region,
+            shape_edges: shape_edges,
         }
     }
 }
 
 impl<TEdge, TRegionEdge> EdgeDescriptor for ClippedShapeEdge<TEdge, TRegionEdge>
 where
-    TEdge:          'static + Clone + EdgeDescriptor,
-    TRegionEdge:    'static + Clone + EdgeDescriptor,
+    TEdge: 'static + Clone + EdgeDescriptor,
+    TRegionEdge: 'static + Clone + EdgeDescriptor,
 {
     fn clone_as_object(&self) -> Arc<dyn EdgeDescriptor> {
         Arc::new(self.clone())
@@ -141,7 +150,9 @@ where
 
     fn prepare_to_render(&mut self) {
         // Prepare the edges for rendering
-        self.shape_edges.iter_mut().for_each(|edge| edge.prepare_to_render());
+        self.shape_edges
+            .iter_mut()
+            .for_each(|edge| edge.prepare_to_render());
 
         // Calculate the bounds of the shape region from the edges
         let mut min_x = f64::MAX;
@@ -160,7 +171,10 @@ where
 
         // The shape bounds are constrained by the clipping region bounds
         let ((clip_minx, clip_miny), (clip_maxx, clip_maxy)) = self.region.bounds;
-        self.shape_bounds = ((min_x.max(clip_minx), min_y.max(clip_miny)), (max_x.min(clip_maxx), max_y.min(clip_maxy)));
+        self.shape_bounds = (
+            (min_x.max(clip_minx), min_y.max(clip_miny)),
+            (max_x.min(clip_maxx), max_y.min(clip_maxy)),
+        );
     }
 
     #[inline]
@@ -174,21 +188,29 @@ where
 
     fn transform(&self, transform: &canvas::Transform2D) -> Arc<dyn EdgeDescriptor> {
         // TODO: if the region is shared we really should continue to share it amongst all the transformed shapes
-        let region      = Arc::new(self.region.transform(transform));
-        let shape_edges = self.shape_edges.iter().map(|edge| edge.transform(transform)).collect();
+        let region = Arc::new(self.region.transform(transform));
+        let shape_edges = self
+            .shape_edges
+            .iter()
+            .map(|edge| edge.transform(transform))
+            .collect();
 
-        let mut new_edge  = ClippedShapeEdge {
-            shape_id:       self.shape_id,
-            region:         region,
-            shape_edges:    shape_edges,
-            shape_bounds:   ((0.0, 0.0), (0.0, 0.0)),
+        let mut new_edge = ClippedShapeEdge {
+            shape_id: self.shape_id,
+            region: region,
+            shape_edges: shape_edges,
+            shape_bounds: ((0.0, 0.0), (0.0, 0.0)),
         };
         new_edge.prepare_to_render();
 
         Arc::new(new_edge)
     }
 
-    fn intercepts(&self, y_positions: &[f64], output: &mut [smallvec::SmallVec<[EdgeDescriptorIntercept; 2]>]) {
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [smallvec::SmallVec<[EdgeDescriptorIntercept; 2]>],
+    ) {
         // Collect the clipping range for these y positions
         // TODO: often we'll clip against multiple shapes for the same set of y coordinates, so a way to cache these results would speed things up
         // TODO: need to use unique subpath IDs when returning different edges
@@ -221,8 +243,8 @@ where
             let mut clip_inside = 0;
 
             // Look ahead in the list of clipping intercepts, ie looking for the next point where the clipping changes
-            let mut clip_iter   = clip_intercepts[y_idx].iter();
-            let mut clip_next   = if let Some(next) = clip_iter.next() { 
+            let mut clip_iter = clip_intercepts[y_idx].iter();
+            let mut clip_next = if let Some(next) = clip_iter.next() {
                 next
             } else {
                 // This entire line is clipped away
@@ -230,9 +252,9 @@ where
             };
 
             // Iterate across the shape
-            let mut shape_inside    = 0;
-            let mut shape_iter      = unclipped_shape[y_idx].iter();
-            let output              = &mut output[y_idx];
+            let mut shape_inside = 0;
+            let mut shape_iter = unclipped_shape[y_idx].iter();
+            let output = &mut output[y_idx];
 
             'clip_region: while let Some(intercept) = shape_iter.next() {
                 let shape_dir = &intercept.direction;
@@ -241,17 +263,27 @@ where
                 // Advance the 'clip_next' position until it is after the current state
                 while clip_next.x_pos < *shape_pos {
                     // Update the 'inside' part of the clipping rectangle
-                    let was_inside  = clip_inside != 0;
-                    clip_inside     = match clip_next.direction {
-                        EdgeInterceptDirection::Toggle          => if clip_inside == 0 { 1 } else { 0 },
-                        EdgeInterceptDirection::DirectionIn     => clip_inside + 1,
-                        EdgeInterceptDirection::DirectionOut    => clip_inside - 1,
+                    let was_inside = clip_inside != 0;
+                    clip_inside = match clip_next.direction {
+                        EdgeInterceptDirection::Toggle => {
+                            if clip_inside == 0 {
+                                1
+                            } else {
+                                0
+                            }
+                        }
+                        EdgeInterceptDirection::DirectionIn => clip_inside + 1,
+                        EdgeInterceptDirection::DirectionOut => clip_inside - 1,
                     };
-                    let is_inside   = clip_inside != 0;
+                    let is_inside = clip_inside != 0;
 
                     // Enter/leave the shape if we're inside it already
                     if shape_inside != 0 && was_inside != is_inside {
-                        output.push(EdgeDescriptorIntercept { direction: EdgeInterceptDirection::Toggle, x_pos: clip_next.x_pos, position: intercept.position })
+                        output.push(EdgeDescriptorIntercept {
+                            direction: EdgeInterceptDirection::Toggle,
+                            x_pos: clip_next.x_pos,
+                            position: intercept.position,
+                        })
                     }
 
                     // Move to the next clip intercept
@@ -264,17 +296,27 @@ where
                 }
 
                 // Update whether or not we're inside the shape
-                let was_inside  = shape_inside != 0;
-                shape_inside    = match shape_dir {
-                    EdgeInterceptDirection::Toggle          => if shape_inside == 0 { 1 } else { 0 },
-                    EdgeInterceptDirection::DirectionIn     => shape_inside + 1,
-                    EdgeInterceptDirection::DirectionOut    => shape_inside - 1,
+                let was_inside = shape_inside != 0;
+                shape_inside = match shape_dir {
+                    EdgeInterceptDirection::Toggle => {
+                        if shape_inside == 0 {
+                            1
+                        } else {
+                            0
+                        }
+                    }
+                    EdgeInterceptDirection::DirectionIn => shape_inside + 1,
+                    EdgeInterceptDirection::DirectionOut => shape_inside - 1,
                 };
-                let is_inside   = shape_inside != 0;
+                let is_inside = shape_inside != 0;
 
                 // clip_next is the closest following clip region to the current shape, so clip_inside can be used to determine if this point is inside the shape
                 if clip_inside != 0 && was_inside != is_inside {
-                    output.push(EdgeDescriptorIntercept { direction: EdgeInterceptDirection::Toggle, x_pos: *shape_pos, position: intercept.position });
+                    output.push(EdgeDescriptorIntercept {
+                        direction: EdgeInterceptDirection::Toggle,
+                        x_pos: *shape_pos,
+                        position: intercept.position,
+                    });
                 }
             }
         }
@@ -282,6 +324,12 @@ where
 
     fn description(&self) -> String {
         use itertools::*;
-        format!("Clipped edge: {}", self.shape_edges.iter().map(|edge| edge.description()).join(", "))
+        format!(
+            "Clipped edge: {}",
+            self.shape_edges
+                .iter()
+                .map(|edge| edge.description())
+                .join(", ")
+        )
     }
 }

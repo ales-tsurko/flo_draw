@@ -8,9 +8,9 @@ use super::shape_id::*;
 ///
 #[derive(Copy, Clone, Debug)]
 pub struct EdgePlanIntercept {
-    pub shape:      ShapeId,
-    pub direction:  EdgeInterceptDirection,
-    pub x_pos:      f64,
+    pub shape: ShapeId,
+    pub direction: EdgeInterceptDirection,
+    pub x_pos: f64,
 }
 
 ///
@@ -21,14 +21,14 @@ pub struct EdgePlanIntercept {
 #[derive(Copy, Clone, Debug)]
 pub struct EdgePlanShardIntercept {
     /// The shape that was intercepted
-    pub shape:      ShapeId,
+    pub shape: ShapeId,
 
     /// The direction that the line that was crossed was intercepted
-    pub direction:  EdgeInterceptDirection,
+    pub direction: EdgeInterceptDirection,
 
     /// The place where the intercept starts (where it has 0% coverage of the new state)
-    pub lower_x:    f64,
+    pub lower_x: f64,
 
     /// The place where the intercept finished (where it has 100% coverage)
-    pub upper_x:    f64,
+    pub upper_x: f64,
 }

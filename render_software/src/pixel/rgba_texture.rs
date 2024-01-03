@@ -23,10 +23,10 @@ impl RgbaTexture {
         // SAFETY: we later rely on this to use get_unchecked
         assert!(width * height * 4 == pixels.len());
 
-        RgbaTexture { 
-            width:  width as i64, 
-            height: height as i64, 
-            pixels: pixels
+        RgbaTexture {
+            width: width as i64,
+            height: height as i64,
+            pixels: pixels,
         }
     }
 
@@ -74,36 +74,36 @@ impl RgbaTexture {
         let mut read_skip_bytes = 0;
 
         // Clip to the size of the image
-        let x       = x.min(self.width as _);
-        let y       = y.min(self.height as _);
-        let width   = if x + width > self.width as _ {
-            let clip        = (x + width) - self.width as usize;
-            read_bytes      = (width - clip) * 4;
+        let x = x.min(self.width as _);
+        let y = y.min(self.height as _);
+        let width = if x + width > self.width as _ {
+            let clip = (x + width) - self.width as usize;
+            read_bytes = (width - clip) * 4;
             read_skip_bytes = clip * 4;
             width - clip
         } else {
-            width 
+            width
         };
-        let height  = height.min(self.height as usize - y);
+        let height = height.min(self.height as usize - y);
 
         // After writing read_bytes, skip this many bytes to write
         let write_skip_bytes = (self.width as usize - width) * 4;
 
         // Pointers for reading/writing
-        let mut write_idx   = (x*4) + (y*(self.width as usize)*4);
-        let mut read_idx    = 0;
+        let mut write_idx = (x * 4) + (y * (self.width as usize) * 4);
+        let mut read_idx = 0;
 
         for _ in 0..height {
             // Write a row
             for _ in 0..read_bytes {
                 self.pixels[write_idx] = bytes[read_idx];
-                write_idx   += 1;
-                read_idx    += 1;
+                write_idx += 1;
+                read_idx += 1;
             }
 
             // Skip to the next row
-            read_idx    += read_skip_bytes;
-            write_idx   += write_skip_bytes;
+            read_idx += read_skip_bytes;
+            write_idx += write_skip_bytes;
         }
     }
 
@@ -113,18 +113,31 @@ impl RgbaTexture {
     #[inline]
     pub fn read_pixel(&self, x: i64, y: i64) -> [u8; 4] {
         // The texture is treated as repeating infinitely
-        let x   = if x >= 0 { x%self.width } else { (x%self.width) + self.width };
-        let y   = if y >= 0 { y%self.height } else { (y%self.height) + self.height };
+        let x = if x >= 0 {
+            x % self.width
+        } else {
+            (x % self.width) + self.width
+        };
+        let y = if y >= 0 {
+            y % self.height
+        } else {
+            (y % self.height) + self.height
+        };
 
         // Calculate the index where this pixel is
-        let idx     = (x + y*self.width) * 4;
-        let idx     = idx as usize;
-        let pixels  = &self.pixels;
+        let idx = (x + y * self.width) * 4;
+        let idx = idx as usize;
+        let pixels = &self.pixels;
 
         // Because of the assertion in new() we know that 'idx' must be in the range covered by this texture
         debug_assert!(idx + 4 <= pixels.len());
         unsafe {
-            [*pixels.get_unchecked(idx), *pixels.get_unchecked(idx+1), *pixels.get_unchecked(idx+2), *pixels.get_unchecked(idx+3)]
+            [
+                *pixels.get_unchecked(idx),
+                *pixels.get_unchecked(idx + 1),
+                *pixels.get_unchecked(idx + 2),
+                *pixels.get_unchecked(idx + 3),
+            ]
         }
     }
 }

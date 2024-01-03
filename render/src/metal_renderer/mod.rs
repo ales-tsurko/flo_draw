@@ -1,10 +1,10 @@
-mod metal_renderer;
 mod bindings;
-mod convert;
 mod buffer;
+mod convert;
 mod matrix_buffer;
-mod render_target;
+mod metal_renderer;
 mod pipeline_configuration;
+mod render_target;
 
 pub use self::metal_renderer::*;
 pub use self::render_target::*;

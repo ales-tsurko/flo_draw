@@ -20,4 +20,4 @@ pub mod render;
 pub mod draw;
 
 pub use flo_canvas as canvas;
-pub use flo_canvas::curves as curves;
+pub use flo_canvas::curves;

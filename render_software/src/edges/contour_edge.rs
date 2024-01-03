@@ -10,7 +10,7 @@ use std::sync::*;
 ///
 /// A contour edge provides an implementation of an edge for any type that implements the `SampledContour` trait
 ///
-pub struct ContourEdge<TContour> 
+pub struct ContourEdge<TContour>
 where
     TContour: 'static + Clone + SampledContour,
 {
@@ -35,7 +35,7 @@ where
         ContourEdge {
             corner_offset,
             shape_id,
-            contour
+            contour,
         }
     }
 }
@@ -48,9 +48,9 @@ where
     fn clone(&self) -> Self {
         // Not sure why, but #[derive(Clone)] causes the type to become private, so we declare Clone the old-fashioned way
         ContourEdge {
-            corner_offset:  self.corner_offset,
-            shape_id:       self.shape_id,
-            contour:        self.contour.clone(),
+            corner_offset: self.corner_offset,
+            shape_id: self.shape_id,
+            contour: self.contour.clone(),
         }
     }
 }
@@ -65,11 +65,10 @@ where
     }
 
     #[inline]
-    fn prepare_to_render(&mut self) {
-    }
+    fn prepare_to_render(&mut self) {}
 
     #[inline]
-    fn shape(&self) -> ShapeId { 
+    fn shape(&self) -> ShapeId {
         self.shape_id
     }
 
@@ -77,30 +76,45 @@ where
         todo!()
     }
 
-    fn bounding_box(&self) -> ((f64, f64), (f64, f64)) { 
-        let ContourSize(w, h)   = self.contour.contour_size();
-        let (w, h)              = (w as f64, h as f64);
-        let (x, y)              = self.corner_offset;
+    fn bounding_box(&self) -> ((f64, f64), (f64, f64)) {
+        let ContourSize(w, h) = self.contour.contour_size();
+        let (w, h) = (w as f64, h as f64);
+        let (x, y) = self.corner_offset;
 
-        (self.corner_offset, (x+w, y+h))
+        (self.corner_offset, (x + w, y + h))
     }
 
-    fn intercepts(&self, y_positions: &[f64], output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>]) {
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>],
+    ) {
         for idx in 0..y_positions.len() {
             let y_pos = y_positions[idx];
 
-            let ContourSize(_, h)   = self.contour.contour_size();
-            let h                   = h as f64;
-            let (x, y)              = self.corner_offset;
+            let ContourSize(_, h) = self.contour.contour_size();
+            let h = h as f64;
+            let (x, y) = self.corner_offset;
 
             // TODO: need to be able to get more information about the intercept here, this won't work to generate shards for concave shapes
             let y_pos = y_pos - y;
             if !(y_pos < 0.0 || y_pos >= h) {
-                output[idx].extend(self.contour.intercepts_on_line(y_pos).into_iter()
-                    .flat_map(|intercept| [
-                        EdgeDescriptorIntercept { direction: EdgeInterceptDirection::Toggle, x_pos: intercept.start + x, position: EdgePosition(0, 0, 0.0) }, 
-                        EdgeDescriptorIntercept { direction: EdgeInterceptDirection::Toggle, x_pos: intercept.end + x, position: EdgePosition(0, 0, 0.0) }
-                    ]));
+                output[idx].extend(self.contour.intercepts_on_line(y_pos).into_iter().flat_map(
+                    |intercept| {
+                        [
+                            EdgeDescriptorIntercept {
+                                direction: EdgeInterceptDirection::Toggle,
+                                x_pos: intercept.start + x,
+                                position: EdgePosition(0, 0, 0.0),
+                            },
+                            EdgeDescriptorIntercept {
+                                direction: EdgeInterceptDirection::Toggle,
+                                x_pos: intercept.end + x,
+                                position: EdgePosition(0, 0, 0.0),
+                            },
+                        ]
+                    },
+                ));
             }
         }
     }

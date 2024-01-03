@@ -6,11 +6,14 @@ impl CanvasRenderer {
     ///
     /// Stores the content of the clipping path from the current layer in a background buffer
     ///
-    pub (super) fn tes_store(&mut self) {
+    pub(super) fn tes_store(&mut self) {
         // TODO: this does not support the clipping behaviour (it stores/restores the whole layer)
         // (We currently aren't using the clipping behaviour for anything so it might be easier to just
         // remove that capability from the documentation?)
-        self.core.sync(|core| core.layer(self.current_layer).state.restore_point = Some(core.layer(self.current_layer).render_order.len()));
+        self.core.sync(|core| {
+            core.layer(self.current_layer).state.restore_point =
+                Some(core.layer(self.current_layer).render_order.len())
+        });
     }
 
     ///
@@ -21,7 +24,7 @@ impl CanvasRenderer {
     ///
     /// (If the clipping path has changed since then, the restored image is clipped against the new path)
     ///
-    pub (super) fn tes_restore(&mut self) {
+    pub(super) fn tes_restore(&mut self) {
         // Roll back the layer to the restore point
         // TODO: need to reset the blend mode
         self.core.sync(|core| {
@@ -45,19 +48,23 @@ impl CanvasRenderer {
     ///
     /// Restore will no longer be valid for the current layer
     ///
-    pub (super) fn tes_free_stored_buffer(&mut self) {
-        self.core.sync(|core| core.layer(self.current_layer).state.restore_point = None);
+    pub(super) fn tes_free_stored_buffer(&mut self) {
+        self.core
+            .sync(|core| core.layer(self.current_layer).state.restore_point = None);
     }
 
     ///
     /// Push the current state of the canvas (line settings, stored image, current path - all state)
     ///
-    pub (super) fn tes_push_state(&mut self) {
+    pub(super) fn tes_push_state(&mut self) {
         self.transform_stack.push(self.active_transform);
         self.namespace_stack.push(self.current_namespace);
 
         self.core.sync(|core| {
-            let all_layers = core.layers.iter().cloned()
+            let all_layers = core
+                .layers
+                .iter()
+                .cloned()
                 .chain(core.sprites.iter().map(|(_, layer_id)| *layer_id))
                 .collect::<Vec<_>>();
 
@@ -70,16 +77,23 @@ impl CanvasRenderer {
     ///
     /// Restore a state previously pushed
     ///
-    pub (super) fn tes_pop_state(&mut self) {
+    pub(super) fn tes_pop_state(&mut self) {
         // The current transform is applied globally
-        self.transform_stack.pop()
+        self.transform_stack
+            .pop()
             .map(|transform| self.active_transform = transform);
-        if let Some(namespace) = self.namespace_stack.pop() { self.current_namespace = namespace;  };
+        if let Some(namespace) = self.namespace_stack.pop() {
+            self.current_namespace = namespace;
+        };
 
         self.core.sync(|core| {
-            core.layer(self.current_layer).update_transform(&self.active_transform);
+            core.layer(self.current_layer)
+                .update_transform(&self.active_transform);
 
-            let all_layers = core.layers.iter().cloned()
+            let all_layers = core
+                .layers
+                .iter()
+                .cloned()
                 .chain(core.sprites.iter().map(|(_, layer_id)| *layer_id))
                 .collect::<Vec<_>>();
 
@@ -92,7 +106,9 @@ impl CanvasRenderer {
                     layer.pop_state();
 
                     if layer.state.current_matrix != old_transform {
-                        layer.render_order.push(RenderEntity::SetTransform(layer.state.current_matrix));
+                        layer
+                            .render_order
+                            .push(RenderEntity::SetTransform(layer.state.current_matrix));
                         layer.update_scale_factor();
                     }
                 } else {

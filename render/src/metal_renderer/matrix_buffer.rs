@@ -3,17 +3,17 @@ use crate::buffer::*;
 
 use metal;
 
-use std::ptr;
+use std::ffi::c_void;
 use std::mem;
-use std::ops::{Deref};
-use std::ffi::{c_void};
+use std::ops::Deref;
+use std::ptr;
 
 ///
 /// Manages a metal buffer containing a matrix
 ///
 pub struct MatrixBuffer {
     /// The buffer that this is managing
-    buffer: metal::Buffer
+    buffer: metal::Buffer,
 }
 
 impl MatrixBuffer {
@@ -25,15 +25,16 @@ impl MatrixBuffer {
         let matrix = matrix_float4x4::from(matrix);
 
         // Generate a metal buffer containing the matrix
-        let matrix_ptr: *const matrix_float4x4  = &matrix;
-        let buffer                              = device.new_buffer_with_data(matrix_ptr as *const c_void,
+        let matrix_ptr: *const matrix_float4x4 = &matrix;
+        let buffer = device.new_buffer_with_data(
+            matrix_ptr as *const c_void,
             std::mem::size_of::<matrix_float4x4>() as u64,
-            metal::MTLResourceOptions::CPUCacheModeDefaultCache | metal::MTLResourceOptions::StorageModeManaged);
+            metal::MTLResourceOptions::CPUCacheModeDefaultCache
+                | metal::MTLResourceOptions::StorageModeManaged,
+        );
 
         // Return the buffer object
-        MatrixBuffer {
-            buffer: buffer
-        }
+        MatrixBuffer { buffer: buffer }
     }
 
     ///
@@ -46,11 +47,18 @@ impl MatrixBuffer {
         // Copy the matrix to the buffer
         unsafe {
             let content = self.buffer.contents();
-            ptr::copy(&matrix, content as *mut matrix_float4x4, mem::size_of::<matrix_float4x4>());
+            ptr::copy(
+                &matrix,
+                content as *mut matrix_float4x4,
+                mem::size_of::<matrix_float4x4>(),
+            );
         }
 
         // Tell the buffer its been modified
-        self.buffer.did_modify_range(metal::NSRange::new(0, mem::size_of::<matrix_float4x4>() as u64));
+        self.buffer.did_modify_range(metal::NSRange::new(
+            0,
+            mem::size_of::<matrix_float4x4>() as u64,
+        ));
     }
 }
 

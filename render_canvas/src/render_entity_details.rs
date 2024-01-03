@@ -1,21 +1,24 @@
 use super::layer_bounds::*;
 
-use flo_render::*;
 use flo_canvas as canvas;
+use flo_render::*;
 
 ///
 /// Provides information about a render entity
 ///
 pub struct RenderEntityDetails {
     /// The bounds for the render entity
-    pub bounds: LayerBounds
+    pub bounds: LayerBounds,
 }
 
 impl RenderEntityDetails {
     ///
     /// Creates a new details object from a set of vertices
     ///
-    pub fn from_vertices<'a>(vertices: impl IntoIterator<Item=&'a Vertex2D>, transform: &canvas::Transform2D) -> RenderEntityDetails {
+    pub fn from_vertices<'a>(
+        vertices: impl IntoIterator<Item = &'a Vertex2D>,
+        transform: &canvas::Transform2D,
+    ) -> RenderEntityDetails {
         // Work out the minimum and maximu
         let mut min = (f32::MAX, f32::MAX);
         let mut max = (f32::MIN, f32::MIN);
@@ -34,12 +37,10 @@ impl RenderEntityDetails {
             min_x: min.0,
             min_y: min.1,
             max_x: max.0,
-            max_y: max.1
+            max_y: max.1,
         };
         let bounds = bounds.transform(transform);
 
-        RenderEntityDetails {
-            bounds
-        }
+        RenderEntityDetails { bounds }
     }
 }

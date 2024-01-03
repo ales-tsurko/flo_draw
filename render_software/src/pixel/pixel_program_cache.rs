@@ -3,8 +3,8 @@ use super::pixel_program_runner::*;
 
 use crate::scanplan::*;
 
-use std::marker::{PhantomData};
-use std::ops::{Range};
+use std::marker::PhantomData;
+use std::ops::Range;
 use std::sync::*;
 
 ///
@@ -18,7 +18,18 @@ pub struct PixelSize(pub f64);
 ///
 /// (This is essentially a fragment shader that runs on the CPU)
 ///
-pub type PixelProgramFn<'a, TPixel> = Box<dyn 'a + Send + Sync + Fn(&PixelProgramRenderCache<TPixel>, &mut [TPixel], Range<i32>, &ScanlineTransform, f64) -> ()>;
+pub type PixelProgramFn<'a, TPixel> = Box<
+    dyn 'a
+        + Send
+        + Sync
+        + Fn(
+            &PixelProgramRenderCache<TPixel>,
+            &mut [TPixel],
+            Range<i32>,
+            &ScanlineTransform,
+            f64,
+        ) -> (),
+>;
 
 ///
 /// Function that binds a pixel program to a particular set of canvas properties
@@ -30,12 +41,14 @@ pub type PixelProgramFn<'a, TPixel> = Box<dyn 'a + Send + Sync + Fn(&PixelProgra
 ///
 // TODO: passing in the data here is necessary for the lifetime, but this would be much simpler if it were possible to specify that
 // the function was borrowed for the lifetime of the PixelProgramFn (so the data can be entirely elided)
-type PixelRenderBindFn<TPixel> = Box<dyn Send + Sync + Fn(PixelSize) -> PixelProgramFn<'static, TPixel>>;
+type PixelRenderBindFn<TPixel> =
+    Box<dyn Send + Sync + Fn(PixelSize) -> PixelProgramFn<'static, TPixel>>;
 
 ///
 /// Function that creates a pixel program function by binding some per-scene data into it
 ///
-type PixelProgramBindFn<TData, TPixel> = Box<dyn Send + Sync + Fn(TData) -> PixelRenderBindFn<TPixel>>;
+type PixelProgramBindFn<TData, TPixel> =
+    Box<dyn Send + Sync + Fn(TData) -> PixelRenderBindFn<TPixel>>;
 
 ///
 /// The pixel program cache assigns IDs to pixel programs.
@@ -45,8 +58,8 @@ type PixelProgramBindFn<TData, TPixel> = Box<dyn Send + Sync + Fn(TData) -> Pixe
 /// set of settings.
 ///
 pub struct PixelProgramCache<TPixel: Send> {
-    next_program_id:    usize,
-    phantom_data:       PhantomData<Mutex<TPixel>>,
+    next_program_id: usize,
+    phantom_data: PhantomData<Mutex<TPixel>>,
 }
 
 ///
@@ -76,8 +89,8 @@ pub struct PixelProgramRenderCache<'a, TPixel: Send> {
 ///
 pub struct StoredPixelProgram<TProgramData, TPixel>
 where
-    TProgramData:   Send,
-    TPixel:         Send
+    TProgramData: Send,
+    TPixel: Send,
 {
     /// The ID of this pixel program
     program_id: PixelProgramId,
@@ -87,10 +100,14 @@ where
 }
 
 /// The `StoredPixelProgram` type that will be derived from the `PixelProgram` `TProgram`
-pub type StoredPixelProgramFromProgram<TProgram> = StoredPixelProgram<<TProgram as PixelProgram>::ProgramData, <TProgram as PixelProgram>::Pixel>;
+pub type StoredPixelProgramFromProgram<TProgram> =
+    StoredPixelProgram<<TProgram as PixelProgram>::ProgramData, <TProgram as PixelProgram>::Pixel>;
 
 /// The `StoredPixelProgram` type that will be derived from the `PixelProgramForFrame` `TProgram`
-pub type StoredPixelProgramFromFrameProgram<TProgram> = StoredPixelProgram<<TProgram as PixelProgramForFrame>::FrameData, <<TProgram as PixelProgramForFrame>::Program as PixelProgram>::Pixel>;
+pub type StoredPixelProgramFromFrameProgram<TProgram> = StoredPixelProgram<
+    <TProgram as PixelProgramForFrame>::FrameData,
+    <<TProgram as PixelProgramForFrame>::Program as PixelProgram>::Pixel,
+>;
 
 ///
 /// Identifier for the program data for a pixel program
@@ -102,8 +119,8 @@ pub struct PixelProgramDataId(pub usize);
 
 impl<TProgramData, TPixel> StoredPixelProgram<TProgramData, TPixel>
 where
-    TProgramData:   Send,
-    TPixel:         Send
+    TProgramData: Send,
+    TPixel: Send,
 {
     /// Returns the program ID of this program
     #[inline]
@@ -121,30 +138,39 @@ where
     ///
     pub fn empty() -> PixelProgramCache<TPixel> {
         PixelProgramCache {
-            next_program_id:    0,
-            phantom_data:       PhantomData,
+            next_program_id: 0,
+            phantom_data: PhantomData,
         }
     }
 
     ///
     /// Creates a function based on a program that sets its data and scanline data, generating the 'make pixels at position' function
     ///
-    fn create_associate_program_data<TProgram>(program: Arc<TProgram>) -> impl Send + Sync + Fn(TProgram::ProgramData) -> PixelRenderBindFn<TPixel>
+    fn create_associate_program_data<TProgram>(
+        program: Arc<TProgram>,
+    ) -> impl Send + Sync + Fn(TProgram::ProgramData) -> PixelRenderBindFn<TPixel>
     where
-        TProgram: 'static + PixelProgram<Pixel=TPixel>,
+        TProgram: 'static + PixelProgram<Pixel = TPixel>,
     {
         move |program_data| {
             // Copy the program
-            let program         = Arc::clone(&program);
-            let program_data    = Arc::new(program_data);
+            let program = Arc::clone(&program);
+            let program_data = Arc::new(program_data);
 
             // Return a function that encapsulates the program data
             Box::new(move |_pixel_size| {
-                let program         = Arc::clone(&program);
-                let program_data    = Arc::clone(&program_data);
+                let program = Arc::clone(&program);
+                let program_data = Arc::clone(&program_data);
 
                 Box::new(move |data_cache, target, x_range, x_transform, y_pos| {
-                    program.draw_pixels(data_cache, target, x_range, x_transform, y_pos, &*program_data)
+                    program.draw_pixels(
+                        data_cache,
+                        target,
+                        x_range,
+                        x_transform,
+                        y_pos,
+                        &*program_data,
+                    )
                 })
             })
         }
@@ -153,22 +179,31 @@ where
     ///
     /// Creates a function based on a program that sets its data and scanline data, generating the 'make pixels at position' function
     ///
-    fn create_associate_frame_program_data<TProgram>(program: Arc<TProgram>) -> impl Send + Sync + Fn(TProgram::FrameData) -> PixelRenderBindFn<TPixel>
+    fn create_associate_frame_program_data<TProgram>(
+        program: Arc<TProgram>,
+    ) -> impl Send + Sync + Fn(TProgram::FrameData) -> PixelRenderBindFn<TPixel>
     where
         TProgram: 'static + PixelProgramForFrame,
-        TProgram::Program: 'static + PixelProgram<Pixel=TPixel>,
+        TProgram::Program: 'static + PixelProgram<Pixel = TPixel>,
     {
         move |program_data| {
             // Copy the program
-            let program         = Arc::clone(&program);
-            let program_data    = Arc::new(program_data);
+            let program = Arc::clone(&program);
+            let program_data = Arc::new(program_data);
 
             // Return a function that encapsulates the program data
             Box::new(move |pixel_size| {
                 let (program, program_data) = program.program_for_frame(pixel_size, &program_data);
 
                 Box::new(move |data_cache, target, x_range, x_transform, y_pos| {
-                    program.draw_pixels(data_cache, target, x_range, x_transform, y_pos, &program_data)
+                    program.draw_pixels(
+                        data_cache,
+                        target,
+                        x_range,
+                        x_transform,
+                        y_pos,
+                        &program_data,
+                    )
                 })
             })
         }
@@ -177,9 +212,12 @@ where
     ///
     /// Caches a pixel program, assigning it an ID, and a cache that can be used
     ///
-    pub fn add_pixel_program<TProgram>(&mut self, program: TProgram) -> StoredPixelProgramFromProgram<TProgram> 
+    pub fn add_pixel_program<TProgram>(
+        &mut self,
+        program: TProgram,
+    ) -> StoredPixelProgramFromProgram<TProgram>
     where
-        TProgram: 'static + PixelProgram<Pixel=TPixel>,
+        TProgram: 'static + PixelProgram<Pixel = TPixel>,
     {
         // Assign an ID to the new program
         let new_program_id = self.next_program_id;
@@ -192,7 +230,7 @@ where
 
         // Return a stored pixel program of the appropriate type
         StoredPixelProgram {
-            program_id:             new_program_id,
+            program_id: new_program_id,
             associate_program_data: associate_data,
         }
     }
@@ -206,10 +244,13 @@ where
     /// This is useful for things like the texturing programs that need to pick which algorithm they're going to use based on the size
     /// of pixel that they will be expected to render.
     ///
-    pub fn add_frame_pixel_program<TProgram>(&mut self, program: TProgram) -> StoredPixelProgramFromFrameProgram<TProgram> 
+    pub fn add_frame_pixel_program<TProgram>(
+        &mut self,
+        program: TProgram,
+    ) -> StoredPixelProgramFromFrameProgram<TProgram>
     where
-        TProgram:           'static + PixelProgramForFrame,
-        TProgram::Program:  'static + PixelProgram<Pixel=TPixel>,
+        TProgram: 'static + PixelProgramForFrame,
+        TProgram::Program: 'static + PixelProgram<Pixel = TPixel>,
     {
         // Assign an ID to the new program
         let new_program_id = self.next_program_id;
@@ -222,7 +263,7 @@ where
 
         // Return a stored pixel program of the appropriate type
         StoredPixelProgram {
-            program_id:             new_program_id,
+            program_id: new_program_id,
             associate_program_data: associate_data,
         }
     }
@@ -232,9 +273,9 @@ where
     ///
     pub fn create_data_cache(&mut self) -> PixelProgramDataCache<TPixel> {
         PixelProgramDataCache {
-            program_data:       vec![],
-            free_data_slots:    vec![],
-            retain_counts:      vec![],
+            program_data: vec![],
+            free_data_slots: vec![],
+            retain_counts: vec![],
         }
     }
 
@@ -242,9 +283,14 @@ where
     /// Stores data to be used with an instance of a pixel program
     ///
     /// Program data can be a number of things: in the simplest case it might be the colour that the program will set the pixels to.
-    /// `release_program_data()` can be used to free this data and make the ID available for reallocation to a different program. 
+    /// `release_program_data()` can be used to free this data and make the ID available for reallocation to a different program.
     ///
-    pub fn store_program_data<TProgramData>(&self, stored_program: &StoredPixelProgram<TProgramData, TPixel>, data_cache: &mut PixelProgramDataCache<TPixel>, data: TProgramData) -> PixelProgramDataId 
+    pub fn store_program_data<TProgramData>(
+        &self,
+        stored_program: &StoredPixelProgram<TProgramData, TPixel>,
+        data_cache: &mut PixelProgramDataCache<TPixel>,
+        data: TProgramData,
+    ) -> PixelProgramDataId
     where
         TProgramData: 'static + Send + Sync,
     {
@@ -254,7 +300,7 @@ where
         // Store in the data cache
         if let Some(program_data_id) = data_cache.free_data_slots.pop() {
             // Overwrite the program data in the unused slot
-            data_cache.program_data[program_data_id]  = associate_scanline_data;
+            data_cache.program_data[program_data_id] = associate_scanline_data;
             data_cache.retain_counts[program_data_id] = 1;
 
             PixelProgramDataId(program_data_id)
@@ -271,7 +317,7 @@ where
     }
 }
 
-impl<TPixel> PixelProgramDataCache<TPixel> 
+impl<TPixel> PixelProgramDataCache<TPixel>
 where
     TPixel: Send,
 {
@@ -297,7 +343,7 @@ where
         } else if self.retain_counts[data_id.0] == 1 {
             // Free the data for this program
             self.retain_counts[data_id.0] = 0;
-            self.program_data[data_id.0]  = Box::new(|_| { Box::new(|_, _, _, _, _| { }) });
+            self.program_data[data_id.0] = Box::new(|_| Box::new(|_, _, _, _, _| {}));
             self.free_data_slots.push(data_id.0);
         } else {
             // Reduce the retain count
@@ -315,11 +361,18 @@ where
     }
 
     ///
-    /// Initialises a render cache from this data cache. This 
+    /// Initialises a render cache from this data cache. This
     ///
-    pub fn create_program_runner<'a>(&'a self, pixel_size: PixelSize) -> impl 'a + PixelProgramRunner<TPixel = TPixel> {
+    pub fn create_program_runner<'a>(
+        &'a self,
+        pixel_size: PixelSize,
+    ) -> impl 'a + PixelProgramRunner<TPixel = TPixel> {
         PixelProgramRenderCache {
-            program_data: self.program_data.iter().map(|data| data(pixel_size)).collect()
+            program_data: self
+                .program_data
+                .iter()
+                .map(|data| data(pixel_size))
+                .collect(),
         }
     }
 }
@@ -334,12 +387,19 @@ where
     /// Runs a program on a range of pixels
     ///
     #[inline]
-    fn run_program(&self, program_data: PixelProgramDataId, target: &mut [TPixel], x_range: Range<i32>, x_transform: &ScanlineTransform, y_pos: f64) {
+    fn run_program(
+        &self,
+        program_data: PixelProgramDataId,
+        target: &mut [TPixel],
+        x_range: Range<i32>,
+        x_transform: &ScanlineTransform,
+        y_pos: f64,
+    ) {
         (self.program_data[program_data.0])(self, target, x_range, x_transform, y_pos)
     }
 }
 
-impl<'a, TPixel> PixelProgramRunner for &'a PixelProgramRenderCache<'a, TPixel> 
+impl<'a, TPixel> PixelProgramRunner for &'a PixelProgramRenderCache<'a, TPixel>
 where
     TPixel: Send,
 {
@@ -349,7 +409,14 @@ where
     /// Runs a program on a range of pixels
     ///
     #[inline]
-    fn run_program(&self, program_data: PixelProgramDataId, target: &mut [TPixel], x_range: Range<i32>, x_transform: &ScanlineTransform, y_pos: f64) {
+    fn run_program(
+        &self,
+        program_data: PixelProgramDataId,
+        target: &mut [TPixel],
+        x_range: Range<i32>,
+        x_transform: &ScanlineTransform,
+        y_pos: f64,
+    ) {
         (self.program_data[program_data.0])(self, target, x_range, x_transform, y_pos)
     }
 }

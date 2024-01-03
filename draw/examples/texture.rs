@@ -1,5 +1,5 @@
-use flo_draw::*;
 use flo_draw::canvas::*;
+use flo_draw::*;
 
 use std::io;
 
@@ -23,18 +23,20 @@ pub fn main() {
             gc.center_region(0.0, 0.0, 1000.0, 1000.0);
 
             // Set up the texture
-            let (flo_w, flo_h) = gc.load_texture(TextureId(0), io::Cursor::new(flo_bytes)).unwrap();
+            let (flo_w, flo_h) = gc
+                .load_texture(TextureId(0), io::Cursor::new(flo_bytes))
+                .unwrap();
 
-            let ratio   = (flo_w as f32)/(flo_h as f32);
-            let height  = 1000.0 / ratio;
-            let y_pos   = (1000.0-height)/2.0;
+            let ratio = (flo_w as f32) / (flo_h as f32);
+            let height = 1000.0 / ratio;
+            let y_pos = (1000.0 - height) / 2.0;
 
             // Draw a rectangle...
             gc.new_path();
-            gc.rect(0.0, y_pos, 1000.0, y_pos+height);
+            gc.rect(0.0, y_pos, 1000.0, y_pos + height);
 
             // Fill with the texture we just loaded
-            gc.fill_texture(TextureId(0), 0.0, y_pos+height as f32, 1000.0, y_pos);
+            gc.fill_texture(TextureId(0), 0.0, y_pos + height as f32, 1000.0, y_pos);
             gc.fill();
         });
     });

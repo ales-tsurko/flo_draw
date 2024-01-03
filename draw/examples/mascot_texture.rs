@@ -1,8 +1,8 @@
-use flo_draw::*;
 use flo_draw::canvas::*;
+use flo_draw::*;
 
-use futures::prelude::*;
 use futures::executor;
+use futures::prelude::*;
 
 use flo_curves::bezier::path::*;
 
@@ -12,12 +12,15 @@ use flo_curves::bezier::path::*;
 pub fn main() {
     with_2d_graphics(|| {
         // Decode
-        let mascot = decode_drawing(MASCOT.chars()).collect::<Result<Vec<Draw>, _>>().unwrap();
+        let mascot = decode_drawing(MASCOT.chars())
+            .collect::<Result<Vec<Draw>, _>>()
+            .unwrap();
 
         // Convert the mascot to a set of paths (note we skip the setup steps here so the paths are not affected by the initial transformation matrix)
-        let render_mascot   = stream::iter(mascot.into_iter().skip(4));
-        let mascot_paths    = drawing_to_attributed_paths::<SimpleBezierPath, _>(render_mascot);
-        let mascot_paths    = executor::block_on(async move { mascot_paths.collect::<Vec<_>>().await });
+        let render_mascot = stream::iter(mascot.into_iter().skip(4));
+        let mascot_paths = drawing_to_attributed_paths::<SimpleBezierPath, _>(render_mascot);
+        let mascot_paths =
+            executor::block_on(async move { mascot_paths.collect::<Vec<_>>().await });
 
         let canvas = create_drawing_window("Pixelated Flo");
         canvas.draw(|gc| {
@@ -36,8 +39,8 @@ pub fn main() {
             gc.layer(LayerId(0));
 
             // Draw the sprite to a texture
-            let flo_w       = 128;
-            let flo_h       = 128;
+            let flo_w = 128;
+            let flo_h = 128;
 
             gc.create_texture(TextureId(0), flo_w, flo_h, TextureFormat::Rgba);
             gc.set_texture_from_sprite(TextureId(0), SpriteId(0), 0.0, 0.0, 1024.0, 1024.0);

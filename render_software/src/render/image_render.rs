@@ -1,14 +1,14 @@
-#[cfg(feature="render_png")]
+#[cfg(feature = "render_png")]
 mod render_png {
     use super::super::frame_size::*;
-    use super::super::renderer::*;
     use super::super::render_slice::*;
     use super::super::render_target_trait::*;
+    use super::super::renderer::*;
     use super::super::u8_frame_renderer::*;
 
     use crate::pixel::*;
 
-    use std::io::{Write, BufWriter};
+    use std::io::{BufWriter, Write};
 
     ///
     /// Render target that outputs a PNG file to a stream
@@ -18,9 +18,9 @@ mod render_png {
         TStream: Write,
     {
         writer: png::Writer<BufWriter<TStream>>,
-        width:  usize,
+        width: usize,
         height: usize,
-        gamma:  f64,
+        gamma: f64,
     }
 
     impl<TStream> PngRenderTarget<TStream>
@@ -36,44 +36,63 @@ mod render_png {
         ///
         /// Creates a PNG writer that will write to a bufwriter
         ///
-        pub fn from_bufwriter(target: BufWriter<TStream>, width: usize, height: usize, gamma: f64) -> Self {
+        pub fn from_bufwriter(
+            target: BufWriter<TStream>,
+            width: usize,
+            height: usize,
+            gamma: f64,
+        ) -> Self {
             let mut target = png::Encoder::new(target, width as u32, height as u32);
 
             target.set_color(png::ColorType::Rgba);
             target.set_depth(png::BitDepth::Eight);
-            target.set_source_gamma(png::ScaledFloat::new((1.0/gamma) as _));
+            target.set_source_gamma(png::ScaledFloat::new((1.0 / gamma) as _));
 
             PngRenderTarget {
                 writer: target.write_header().unwrap(),
-                width:  width,
+                width: width,
                 height: height,
-                gamma:  gamma,
+                gamma: gamma,
             }
         }
     }
 
-    impl<'a, TStream, TPixel> RenderTarget<TPixel> for PngRenderTarget<TStream> 
+    impl<'a, TStream, TPixel> RenderTarget<TPixel> for PngRenderTarget<TStream>
     where
-        TStream:    Write,
-        TPixel:     'static + Send + Copy + Default + AlphaBlend + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
+        TStream: Write,
+        TPixel: 'static
+            + Send
+            + Copy
+            + Default
+            + AlphaBlend
+            + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
     {
-        #[inline] fn width(&self) -> usize {
+        #[inline]
+        fn width(&self) -> usize {
             self.width
         }
 
-        #[inline]fn height(&self) -> usize {
+        #[inline]
+        fn height(&self) -> usize {
             self.height
         }
-        
-        fn render<TRegionRenderer>(&mut self, region_renderer: TRegionRenderer, source_data: &TRegionRenderer::Source)
-        where
-            TRegionRenderer: Renderer<Region=RenderSlice, Dest=[TPixel]>
+
+        fn render<TRegionRenderer>(
+            &mut self,
+            region_renderer: TRegionRenderer,
+            source_data: &TRegionRenderer::Source,
+        ) where
+            TRegionRenderer: Renderer<Region = RenderSlice, Dest = [TPixel]>,
         {
             // Render to a buffer
             // TODO: need to render to a non-premultiplied RGB format for PNG files
-            let renderer        = U8FrameRenderer::new(region_renderer);
-            let frame_size      = GammaFrameSize { width: self.width, height: self.height, gamma: self.gamma };
-            let mut pixel_data  = vec![0u8; self.width*self.height*4];
+            let renderer = U8FrameRenderer::new(region_renderer);
+            let frame_size = GammaFrameSize {
+                width: self.width,
+                height: self.height,
+                gamma: self.gamma,
+            };
+            let mut pixel_data = vec![0u8; self.width * self.height * 4];
 
             renderer.render(&frame_size, source_data, pixel_data.to_rgba_slice_mut());
 
@@ -83,5 +102,5 @@ mod render_png {
     }
 }
 
-#[cfg(feature="render_png")]
+#[cfg(feature = "render_png")]
 pub use render_png::*;

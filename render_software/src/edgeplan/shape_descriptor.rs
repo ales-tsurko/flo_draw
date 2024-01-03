@@ -23,10 +23,10 @@ impl ShapeDescriptor {
     ///
     #[inline]
     pub fn opaque(program: PixelProgramDataId) -> ShapeDescriptor {
-        ShapeDescriptor { 
-            programs:   smallvec![program], 
-            is_opaque:  true, 
-            z_index:    0 
+        ShapeDescriptor {
+            programs: smallvec![program],
+            is_opaque: true,
+            z_index: 0,
         }
     }
 
@@ -35,10 +35,10 @@ impl ShapeDescriptor {
     ///
     #[inline]
     pub fn transparent(program: PixelProgramDataId) -> ShapeDescriptor {
-        ShapeDescriptor { 
-            programs:   smallvec![program], 
-            is_opaque:  false, 
-            z_index:    0 
+        ShapeDescriptor {
+            programs: smallvec![program],
+            is_opaque: false,
+            z_index: 0,
         }
     }
 

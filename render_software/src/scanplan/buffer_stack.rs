@@ -1,7 +1,7 @@
-use std::ops::{Range};
+use std::ops::Range;
 
 ///
-/// A buffer stack is used to store a list of 
+/// A buffer stack is used to store a list of
 ///
 pub struct BufferStack<'a, TPixel> {
     /// The raw stack entry for this buffer stack
@@ -14,7 +14,7 @@ pub struct BufferStack<'a, TPixel> {
     ready_stack: Vec<Vec<TPixel>>,
 }
 
-impl<'a, TPixel> BufferStack<'a, TPixel> 
+impl<'a, TPixel> BufferStack<'a, TPixel>
 where
     TPixel: Copy,
 {
@@ -24,9 +24,9 @@ where
     #[inline]
     pub fn new(buffer: &'a mut [TPixel]) -> Self {
         BufferStack {
-            first:          buffer,
-            stack:          vec![],
-            ready_stack:    vec![],
+            first: buffer,
+            stack: vec![],
+            ready_stack: vec![],
         }
     }
 

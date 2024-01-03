@@ -1,12 +1,12 @@
 use gl;
 
-use std::ops::{Deref};
+use std::ops::Deref;
 
 ///
 /// Abstraction for an OpenGL vertex array object
 ///
 pub struct VertexArray {
-    vertex_array_object: gl::types::GLuint
+    vertex_array_object: gl::types::GLuint,
 }
 
 impl VertexArray {
@@ -21,7 +21,7 @@ impl VertexArray {
 
             // Encapsulate into the structure
             VertexArray {
-                vertex_array_object: new_array
+                vertex_array_object: new_array,
             }
         }
     }
@@ -36,7 +36,7 @@ impl Deref for VertexArray {
 }
 
 impl Drop for VertexArray {
-    fn drop(&mut self) { 
+    fn drop(&mut self) {
         unsafe {
             gl::DeleteVertexArrays(1, &mut self.vertex_array_object);
         }

@@ -6,7 +6,7 @@ use crate::scanplan::*;
 
 use flo_canvas as canvas;
 
-use std::marker::{PhantomData};
+use std::marker::PhantomData;
 use std::sync::*;
 
 ///
@@ -20,7 +20,7 @@ where
     OriginalEdges(Arc<EdgePlan<TEdgeDescriptor>>),
 
     /// The transformed set of edges
-    TransformedEdges(Arc<EdgePlan<Arc<dyn EdgeDescriptor>>>)
+    TransformedEdges(Arc<EdgePlan<Arc<dyn EdgeDescriptor>>>),
 }
 
 ///
@@ -32,11 +32,11 @@ where
 ///
 pub struct TransformedSpriteProgram<TPixel, TEdgeDescriptor, TPlanner>
 where
-    TEdgeDescriptor:    'static + EdgeDescriptor,
-    TPixel:             'static,
+    TEdgeDescriptor: 'static + EdgeDescriptor,
+    TPixel: 'static,
 {
-    basic_program:      PhantomData<BasicSpriteProgram<TPixel, Arc<dyn EdgeDescriptor>, TPlanner>>,
-    edge_descriptor:    PhantomData<EdgePlan<TEdgeDescriptor>>
+    basic_program: PhantomData<BasicSpriteProgram<TPixel, Arc<dyn EdgeDescriptor>, TPlanner>>,
+    edge_descriptor: PhantomData<EdgePlan<TEdgeDescriptor>>,
 }
 
 ///
@@ -53,15 +53,16 @@ where
     transform: canvas::Transform2D,
 }
 
-impl<TPixel, TEdgeDescriptor, TPlanner> Default for TransformedSpriteProgram<TPixel, TEdgeDescriptor, TPlanner> 
+impl<TPixel, TEdgeDescriptor, TPlanner> Default
+    for TransformedSpriteProgram<TPixel, TEdgeDescriptor, TPlanner>
 where
-    TEdgeDescriptor:    'static + EdgeDescriptor,
-    TPixel:             'static,
+    TEdgeDescriptor: 'static + EdgeDescriptor,
+    TPixel: 'static,
 {
     fn default() -> Self {
         TransformedSpriteProgram {
-            basic_program:      PhantomData, 
-            edge_descriptor:    PhantomData,
+            basic_program: PhantomData,
+            edge_descriptor: PhantomData,
         }
     }
 }
@@ -75,17 +76,18 @@ where
     ///
     pub fn new(edges: Arc<EdgePlan<TEdgeDescriptor>>, transform: canvas::Transform2D) -> Self {
         TransformedSpriteData {
-            edges:      RwLock::new(TransformedEdges::OriginalEdges(edges)),
-            transform:  transform,
+            edges: RwLock::new(TransformedEdges::OriginalEdges(edges)),
+            transform: transform,
         }
     }
 }
 
-impl<TPixel, TEdgeDescriptor, TPlanner> PixelProgramForFrame for TransformedSpriteProgram<TPixel, TEdgeDescriptor, TPlanner>
+impl<TPixel, TEdgeDescriptor, TPlanner> PixelProgramForFrame
+    for TransformedSpriteProgram<TPixel, TEdgeDescriptor, TPlanner>
 where
-    TEdgeDescriptor:    'static + EdgeDescriptor,
-    TPixel:             'static + Copy + Send + Sync + AlphaBlend,
-    TPlanner:           Send + Sync + Default + ScanPlanner<Edge=Arc<dyn EdgeDescriptor>>,
+    TEdgeDescriptor: 'static + EdgeDescriptor,
+    TPixel: 'static + Copy + Send + Sync + AlphaBlend,
+    TPlanner: Send + Sync + Default + ScanPlanner<Edge = Arc<dyn EdgeDescriptor>>,
 {
     /// The type of the pixel program that this will run
     type Program = BasicSpriteProgram<TPixel, Arc<dyn EdgeDescriptor>, TPlanner>;
@@ -98,14 +100,22 @@ where
     ///
     /// Creates a pixel program and the corresponding data that will run for a given frame size
     ///
-    fn program_for_frame(&self, _pixel_size: PixelSize, program_data: &Arc<Self::FrameData>) -> (BasicSpriteProgram<TPixel, Arc<dyn EdgeDescriptor>, TPlanner>, BasicSpriteData<Arc<dyn EdgeDescriptor>>) {
+    fn program_for_frame(
+        &self,
+        _pixel_size: PixelSize,
+        program_data: &Arc<Self::FrameData>,
+    ) -> (
+        BasicSpriteProgram<TPixel, Arc<dyn EdgeDescriptor>, TPlanner>,
+        BasicSpriteData<Arc<dyn EdgeDescriptor>>,
+    ) {
         let transformed_edges = {
             let mut edges = program_data.edges.write().unwrap();
 
             match &*edges {
                 TransformedEdges::OriginalEdges(original_edges) => {
                     // Transform the edegs and update the state
-                    let transformed_edges = Arc::new(original_edges.transform(&program_data.transform));
+                    let transformed_edges =
+                        Arc::new(original_edges.transform(&program_data.transform));
                     *edges = TransformedEdges::TransformedEdges(transformed_edges.clone());
 
                     transformed_edges

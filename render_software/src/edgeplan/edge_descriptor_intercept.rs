@@ -1,6 +1,6 @@
 use super::edge_intercept_direction::*;
 
-use std::cmp::{Ordering};
+use std::cmp::Ordering;
 
 ///
 /// Describes a position within an edge descriptor
@@ -39,9 +39,7 @@ impl PartialOrd for EdgePosition {
     }
 }
 
-impl Eq for EdgePosition {
-
-}
+impl Eq for EdgePosition {}
 
 impl Ord for EdgePosition {
     #[inline]

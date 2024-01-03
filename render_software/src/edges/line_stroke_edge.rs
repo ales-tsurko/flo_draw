@@ -4,11 +4,11 @@ use crate::edgeplan::*;
 
 use flo_canvas as canvas;
 use flo_canvas::curves::bezier::path::*;
-use flo_canvas::curves::geo::*;
 use flo_canvas::curves::bezier::*;
+use flo_canvas::curves::geo::*;
 
-use smallvec::*;
 use itertools::*;
+use smallvec::*;
 
 use std::iter;
 use std::sync::*;
@@ -45,14 +45,20 @@ impl LineStrokeEdge {
     /// Subpaths are the indexes into the `path_edges` list that indicate where the stroke should be divided
     ///
     #[inline]
-    pub fn new(shape_id: ShapeId, path_edges: Vec<Curve<Coord2>>, subpaths: Vec<usize>, width: f64, stroke_options: StrokeOptions) -> Self {
+    pub fn new(
+        shape_id: ShapeId,
+        path_edges: Vec<Curve<Coord2>>,
+        subpaths: Vec<usize>,
+        width: f64,
+        stroke_options: StrokeOptions,
+    ) -> Self {
         LineStrokeEdge {
-            shape_id:       shape_id,
+            shape_id: shape_id,
             stroke_options: stroke_options,
-            width:          width,
-            path_edges:     path_edges,
-            subpaths:       subpaths,
-            bezier_path:    vec![],
+            width: width,
+            path_edges: path_edges,
+            subpaths: subpaths,
+            bezier_path: vec![],
         }
     }
 }
@@ -73,11 +79,21 @@ impl EdgeDescriptor for LineStrokeEdge {
         self.bezier_path.clear();
 
         // Create bezier subpaths
-        for (start_idx, end_idx) in self.subpaths.iter().copied().chain(iter::once(self.path_edges.len())).tuple_windows() {
-            if start_idx >= end_idx { continue; }
+        for (start_idx, end_idx) in self
+            .subpaths
+            .iter()
+            .copied()
+            .chain(iter::once(self.path_edges.len()))
+            .tuple_windows()
+        {
+            if start_idx >= end_idx {
+                continue;
+            }
 
             // Use a path builder to create a simple bezier path
-            let mut path = BezierPathBuilder::<SimpleBezierPath>::start(self.path_edges[start_idx].start_point());
+            let mut path = BezierPathBuilder::<SimpleBezierPath>::start(
+                self.path_edges[start_idx].start_point(),
+            );
             for curve in self.path_edges[start_idx..end_idx].iter() {
                 path = path.curve_to(curve.control_points(), curve.end_point());
             }
@@ -85,7 +101,8 @@ impl EdgeDescriptor for LineStrokeEdge {
             let path = path.build();
 
             // Thicken it using the path stroking algorithm
-            let stroked_path = stroke_path::<BezierSubpath, _>(&path, self.width, &self.stroke_options);
+            let stroked_path =
+                stroke_path::<BezierSubpath, _>(&path, self.width, &self.stroke_options);
 
             // Render this path using the non-zero winding rule
             for subpath in stroked_path.into_iter() {
@@ -101,13 +118,15 @@ impl EdgeDescriptor for LineStrokeEdge {
 
     fn transform(&self, transform: &canvas::Transform2D) -> Arc<dyn EdgeDescriptor> {
         // Convert the edges
-        let path_edges = self.path_edges.iter()
+        let path_edges = self
+            .path_edges
+            .iter()
             .map(|curve| {
                 let (sp, (cp1, cp2), ep) = curve.all_points();
-                let sp  = transform_coord(&sp, &transform);
+                let sp = transform_coord(&sp, &transform);
                 let cp1 = transform_coord(&cp1, &transform);
                 let cp2 = transform_coord(&cp2, &transform);
-                let ep  = transform_coord(&ep, &transform);
+                let ep = transform_coord(&ep, &transform);
 
                 Curve::from_points(sp, (cp1, cp2), ep)
             })
@@ -115,7 +134,9 @@ impl EdgeDescriptor for LineStrokeEdge {
 
         if self.bezier_path.len() != 0 {
             // This edge was already prepared, so transform the bezier path
-            let bezier_path = self.bezier_path.iter()
+            let bezier_path = self
+                .bezier_path
+                .iter()
                 .map(|bezier_path| {
                     let mut path = bezier_path.transform_as_self(transform);
                     path.prepare_to_render();
@@ -124,22 +145,22 @@ impl EdgeDescriptor for LineStrokeEdge {
                 .collect();
 
             Arc::new(LineStrokeEdge {
-                shape_id:       self.shape_id,
+                shape_id: self.shape_id,
                 stroke_options: self.stroke_options,
-                width:          self.width,
-                path_edges:     path_edges,
-                subpaths:       self.subpaths.clone(),
-                bezier_path:    bezier_path,
+                width: self.width,
+                path_edges: path_edges,
+                subpaths: self.subpaths.clone(),
+                bezier_path: bezier_path,
             })
         } else {
             // Edge was not prepared: create with no bezier path, then prepare it
             let mut new_edge = LineStrokeEdge {
-                shape_id:       self.shape_id,
+                shape_id: self.shape_id,
                 stroke_options: self.stroke_options,
-                width:          self.width,
-                path_edges:     path_edges,
-                subpaths:       self.subpaths.clone(),
-                bezier_path:    vec![],
+                width: self.width,
+                path_edges: path_edges,
+                subpaths: self.subpaths.clone(),
+                bezier_path: vec![],
             };
             new_edge.prepare_to_render();
 
@@ -152,8 +173,8 @@ impl EdgeDescriptor for LineStrokeEdge {
     }
 
     fn bounding_box(&self) -> ((f64, f64), (f64, f64)) {
-        let (mut min_x, mut min_y)  = (f64::MAX, f64::MAX);
-        let (mut max_x, mut max_y)  = (f64::MIN, f64::MIN);
+        let (mut min_x, mut min_y) = (f64::MAX, f64::MAX);
+        let (mut max_x, mut max_y) = (f64::MIN, f64::MIN);
 
         for path in self.bezier_path.iter() {
             let ((path_min_x, path_min_y), (path_max_x, path_max_y)) = path.bounding_box();
@@ -167,10 +188,14 @@ impl EdgeDescriptor for LineStrokeEdge {
         ((min_x, min_y), (max_x, max_y))
     }
 
-    fn intercepts(&self, y_positions: &[f64], output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>]) {
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>],
+    ) {
         match self.bezier_path.len() {
-            0 => { }
-            1 => { self.bezier_path[0].intercepts(y_positions, output) }
+            0 => {}
+            1 => self.bezier_path[0].intercepts(y_positions, output),
 
             _ => {
                 // Fill the initial set of inputs
@@ -232,14 +257,20 @@ impl FlattenedLineStrokeEdge {
     /// Subpaths are the indexes into the `path_edges` list that indicate where the stroke should be divided
     ///
     #[inline]
-    pub fn new(shape_id: ShapeId, path_edges: Vec<Curve<Coord2>>, subpaths: Vec<usize>, width: f64, stroke_options: StrokeOptions) -> Self {
+    pub fn new(
+        shape_id: ShapeId,
+        path_edges: Vec<Curve<Coord2>>,
+        subpaths: Vec<usize>,
+        width: f64,
+        stroke_options: StrokeOptions,
+    ) -> Self {
         FlattenedLineStrokeEdge {
-            shape_id:       shape_id,
+            shape_id: shape_id,
             stroke_options: stroke_options,
-            width:          width,
-            path_edges:     path_edges,
-            subpaths:       subpaths,
-            bezier_path:    vec![],
+            width: width,
+            path_edges: path_edges,
+            subpaths: subpaths,
+            bezier_path: vec![],
         }
     }
 }
@@ -253,11 +284,21 @@ impl EdgeDescriptor for FlattenedLineStrokeEdge {
         self.bezier_path.clear();
 
         // Create bezier subpaths
-        for (start_idx, end_idx) in self.subpaths.iter().copied().chain(iter::once(self.path_edges.len())).tuple_windows() {
-            if start_idx >= end_idx { continue; }
+        for (start_idx, end_idx) in self
+            .subpaths
+            .iter()
+            .copied()
+            .chain(iter::once(self.path_edges.len()))
+            .tuple_windows()
+        {
+            if start_idx >= end_idx {
+                continue;
+            }
 
             // Use a path builder to create a simple bezier path
-            let mut path = BezierPathBuilder::<SimpleBezierPath>::start(self.path_edges[start_idx].start_point());
+            let mut path = BezierPathBuilder::<SimpleBezierPath>::start(
+                self.path_edges[start_idx].start_point(),
+            );
             for curve in self.path_edges[start_idx..end_idx].iter() {
                 path = path.curve_to(curve.control_points(), curve.end_point());
             }
@@ -265,11 +306,13 @@ impl EdgeDescriptor for FlattenedLineStrokeEdge {
             let path = path.build();
 
             // Thicken it using the path stroking algorithm
-            let stroked_path = stroke_path::<BezierSubpath, _>(&path, self.width, &self.stroke_options);
+            let stroked_path =
+                stroke_path::<BezierSubpath, _>(&path, self.width, &self.stroke_options);
 
             // Render this path using the non-zero winding rule
             for subpath in stroked_path.into_iter() {
-                self.bezier_path.push(subpath.to_flattened_non_zero_edge(ShapeId(0)));
+                self.bezier_path
+                    .push(subpath.to_flattened_non_zero_edge(ShapeId(0)));
             }
         }
 
@@ -284,8 +327,8 @@ impl EdgeDescriptor for FlattenedLineStrokeEdge {
     }
 
     fn bounding_box(&self) -> ((f64, f64), (f64, f64)) {
-        let (mut min_x, mut min_y)  = (f64::MAX, f64::MAX);
-        let (mut max_x, mut max_y)  = (f64::MIN, f64::MIN);
+        let (mut min_x, mut min_y) = (f64::MAX, f64::MAX);
+        let (mut max_x, mut max_y) = (f64::MIN, f64::MIN);
 
         for path in self.bezier_path.iter() {
             let ((path_min_x, path_min_y), (path_max_x, path_max_y)) = path.bounding_box();
@@ -301,13 +344,15 @@ impl EdgeDescriptor for FlattenedLineStrokeEdge {
 
     fn transform(&self, transform: &canvas::Transform2D) -> Arc<dyn EdgeDescriptor> {
         // Convert the edges
-        let path_edges = self.path_edges.iter()
+        let path_edges = self
+            .path_edges
+            .iter()
             .map(|curve| {
                 let (sp, (cp1, cp2), ep) = curve.all_points();
-                let sp  = transform_coord(&sp, &transform);
+                let sp = transform_coord(&sp, &transform);
                 let cp1 = transform_coord(&cp1, &transform);
                 let cp2 = transform_coord(&cp2, &transform);
-                let ep  = transform_coord(&ep, &transform);
+                let ep = transform_coord(&ep, &transform);
 
                 Curve::from_points(sp, (cp1, cp2), ep)
             })
@@ -315,27 +360,29 @@ impl EdgeDescriptor for FlattenedLineStrokeEdge {
 
         if self.bezier_path.len() != 0 {
             // This edge was already prepared, so transform the bezier path
-            let bezier_path = self.bezier_path.iter()
+            let bezier_path = self
+                .bezier_path
+                .iter()
                 .map(|bezier_path| bezier_path.transform_as_self(transform))
                 .collect::<Vec<_>>();
 
             Arc::new(FlattenedLineStrokeEdge {
-                shape_id:       self.shape_id,
+                shape_id: self.shape_id,
                 stroke_options: self.stroke_options,
-                width:          self.width,
-                path_edges:     path_edges,
-                subpaths:       self.subpaths.clone(),
-                bezier_path:    bezier_path,
+                width: self.width,
+                path_edges: path_edges,
+                subpaths: self.subpaths.clone(),
+                bezier_path: bezier_path,
             })
         } else {
             // Edge was not prepared: create with no bezier path, then prepare it
             let mut new_edge = LineStrokeEdge {
-                shape_id:       self.shape_id,
+                shape_id: self.shape_id,
                 stroke_options: self.stroke_options,
-                width:          self.width,
-                path_edges:     path_edges,
-                subpaths:       self.subpaths.clone(),
-                bezier_path:    vec![],
+                width: self.width,
+                path_edges: path_edges,
+                subpaths: self.subpaths.clone(),
+                bezier_path: vec![],
             };
             new_edge.prepare_to_render();
 
@@ -343,10 +390,14 @@ impl EdgeDescriptor for FlattenedLineStrokeEdge {
         }
     }
 
-    fn intercepts(&self, y_positions: &[f64], output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>]) {
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>],
+    ) {
         match self.bezier_path.len() {
-            0 => { }
-            1 => { self.bezier_path[0].intercepts(y_positions, output) }
+            0 => {}
+            1 => self.bezier_path[0].intercepts(y_positions, output),
 
             _ => {
                 // Fill the initial set of inputs
@@ -378,7 +429,12 @@ impl EdgeDescriptor for FlattenedLineStrokeEdge {
 
     fn description(&self) -> String {
         use itertools::*;
-        format!("Flattened line edge: {}", 
-            self.bezier_path.iter().map(|edge| edge.description()).join("\n  "))
+        format!(
+            "Flattened line edge: {}",
+            self.bezier_path
+                .iter()
+                .map(|edge| edge.description())
+                .join("\n  ")
+        )
     }
 }

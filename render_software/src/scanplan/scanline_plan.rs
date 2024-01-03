@@ -3,7 +3,7 @@ use crate::pixel::*;
 
 use smallvec::*;
 
-use std::ops::{Range};
+use std::ops::Range;
 
 // An observation is that we don't have to build up the stacks here, we can just run all the spans from back to front to build up
 // the same image, and just split where we want to remove spans underneath opaque spans. This will probably be faster because there
@@ -19,9 +19,9 @@ use std::ops::{Range};
 ///
 #[derive(Clone, Debug)]
 pub struct ScanSpanStack {
-    pub (crate) x_range:    Range<f64>,
-    pub (crate) plan:       SmallVec<[PixelProgramPlan; 4]>,
-    pub (crate) opaque:     bool,
+    pub(crate) x_range: Range<f64>,
+    pub(crate) plan: SmallVec<[PixelProgramPlan; 4]>,
+    pub(crate) opaque: bool,
 }
 
 ///
@@ -44,10 +44,10 @@ impl ScanSpanStack {
     ///
     #[inline]
     pub fn with_first_span(span: ScanSpan) -> ScanSpanStack {
-        ScanSpanStack { 
-            x_range:    span.x_range,
-            plan:       smallvec![PixelProgramPlan::Run(span.program)],
-            opaque:     span.opaque,
+        ScanSpanStack {
+            x_range: span.x_range,
+            plan: smallvec![PixelProgramPlan::Run(span.program)],
+            opaque: span.opaque,
         }
     }
 
@@ -55,11 +55,15 @@ impl ScanSpanStack {
     /// Creates a span stack with the specified set of programs, specified in reverse ordrer
     ///
     #[inline]
-    pub fn with_reversed_programs(x_range: Range<f64>, opaque: bool, programs_reversed: &Vec<PixelProgramPlan>) -> ScanSpanStack {
+    pub fn with_reversed_programs(
+        x_range: Range<f64>,
+        opaque: bool,
+        programs_reversed: &Vec<PixelProgramPlan>,
+    ) -> ScanSpanStack {
         ScanSpanStack {
-            x_range:    x_range,
-            plan:       programs_reversed.iter().rev().copied().collect(),
-            opaque:     opaque,
+            x_range: x_range,
+            plan: programs_reversed.iter().rev().copied().collect(),
+            opaque: opaque,
         }
     }
 
@@ -83,9 +87,9 @@ impl ScanSpanStack {
             self.x_range.end = x_pos;
 
             Ok(ScanSpanStack {
-                x_range:    x_pos..end,
-                plan:       self.plan.clone(),
-                opaque:     self.opaque,
+                x_range: x_pos..end,
+                plan: self.plan.clone(),
+                opaque: self.opaque,
             })
         } else {
             Err(())
@@ -96,13 +100,15 @@ impl ScanSpanStack {
     /// The range of pixels covered by this span
     ///
     #[inline]
-    pub fn x_range(&self) -> Range<f64> { self.x_range.start..self.x_range.end }
+    pub fn x_range(&self) -> Range<f64> {
+        self.x_range.start..self.x_range.end
+    }
 
     ///
     /// Returns an iterator for the IDs of the programs that should be run over this range
     ///
     #[inline]
-    pub fn programs<'a>(&'a self) -> impl 'a + Iterator<Item=PixelProgramPlan> {
+    pub fn programs<'a>(&'a self) -> impl 'a + Iterator<Item = PixelProgramPlan> {
         self.plan.iter().copied()
     }
 
@@ -111,14 +117,14 @@ impl ScanSpanStack {
     /// with anything it's on top of
     ///
     #[inline]
-    pub fn is_opaque(&self) -> bool { self.opaque }
+    pub fn is_opaque(&self) -> bool {
+        self.opaque
+    }
 }
 
 impl Default for ScanlinePlan {
     fn default() -> Self {
-        ScanlinePlan {
-            spans: vec![]
-        }
+        ScanlinePlan { spans: vec![] }
     }
 }
 
@@ -134,8 +140,16 @@ impl ScanlinePlan {
             let mut last_x = first_stack.x_range.end;
 
             while let Some(next_stack) = stack_iter.next() {
-                assert!(next_stack.x_range.start >= last_x, "Spans are out of order ({} < {})", next_stack.x_range.start, last_x);
-                assert!(next_stack.x_range.start != next_stack.x_range.end, "0-length span");
+                assert!(
+                    next_stack.x_range.start >= last_x,
+                    "Spans are out of order ({} < {})",
+                    next_stack.x_range.start,
+                    last_x
+                );
+                assert!(
+                    next_stack.x_range.start != next_stack.x_range.end,
+                    "0-length span"
+                );
 
                 last_x = next_stack.x_range.end;
             }
@@ -160,9 +174,7 @@ impl ScanlinePlan {
     ///
     #[inline]
     pub unsafe fn from_ordered_stacks_prechecked(stacks: Vec<ScanSpanStack>) -> ScanlinePlan {
-        ScanlinePlan {
-            spans: stacks
-        }
+        ScanlinePlan { spans: stacks }
     }
 
     ///
@@ -191,9 +203,9 @@ impl ScanlinePlan {
     ///
     pub fn add_span(&mut self, span: ScanSpan) {
         // Binary search for where this span begins
-        let x_pos   = span.x_range.start;
+        let x_pos = span.x_range.start;
         let mut min = 0;
-        let max     = self.spans.len();
+        let max = self.spans.len();
 
         /* -- TODO, test is this worth it? (as we just insert into the vec later on)
         while max > min+4 {
@@ -227,11 +239,11 @@ impl ScanlinePlan {
             match self.spans[pos].split(span.x_range.start) {
                 Ok(rhs) => {
                     // Add the RHS into the spans to be merged by the remainder of the algorithm
-                    self.spans.insert(pos+1, rhs);
+                    self.spans.insert(pos + 1, rhs);
                     pos += 1;
                 }
 
-                Err(()) => { }
+                Err(()) => {}
             }
         }
 
@@ -260,8 +272,12 @@ impl ScanlinePlan {
                 pos += 1;
 
                 loop {
-                    if pos >= self.spans.len() { break; }
-                    if self.spans[pos].x_range.start >= x_range.end { break; }
+                    if pos >= self.spans.len() {
+                        break;
+                    }
+                    if self.spans[pos].x_range.start >= x_range.end {
+                        break;
+                    }
 
                     if self.spans[pos].x_range.end > x_range.end {
                         self.spans[pos].x_range.start = x_range.end;
@@ -323,7 +339,7 @@ impl ScanlinePlan {
                                 self.spans[pos].push(span);
 
                                 // The RHS is the parts of the span
-                                self.spans.insert(pos+1, rhs);
+                                self.spans.insert(pos + 1, rhs);
                             }
 
                             Err(()) => {
@@ -346,7 +362,7 @@ impl ScanlinePlan {
     fn combine_adjacent_spans(&mut self) {
         // Search for the first adjacent span...
         for idx in 1..self.spans.len() {
-            let last_span = &self.spans[idx-1];
+            let last_span = &self.spans[idx - 1];
             let this_span = &self.spans[idx];
 
             if last_span.x_range.end != this_span.x_range.start {
@@ -361,23 +377,25 @@ impl ScanlinePlan {
 
             // This is the first span that has a matching adjacent span
             let end = this_span.x_range.end;
-            self.spans[idx-1].x_range.end = end;
+            self.spans[idx - 1].x_range.end = end;
 
             // The offset index is where we're moving spans to (one ahead of the 'last' span, and finally the length of the result)
             let mut offset_idx = idx;
 
-            for copy_from_idx in (idx+1)..self.spans.len() {
-                let last_span = &self.spans[offset_idx-1];
+            for copy_from_idx in (idx + 1)..self.spans.len() {
+                let last_span = &self.spans[offset_idx - 1];
                 let this_span = &self.spans[copy_from_idx];
 
-                if last_span.x_range.end != this_span.x_range.start || last_span.plan != this_span.plan {
+                if last_span.x_range.end != this_span.x_range.start
+                    || last_span.plan != this_span.plan
+                {
                     // Not adjacent, or not matching: copy the definition and update the offset index
                     self.spans[offset_idx] = this_span.clone();
                     offset_idx += 1;
                 } else {
                     // this_span is a continuation of last_span: extend it
                     let end = this_span.x_range.end;
-                    self.spans[offset_idx-1].x_range.end = end;
+                    self.spans[offset_idx - 1].x_range.end = end;
                 }
             }
 
@@ -395,20 +413,30 @@ impl ScanlinePlan {
     /// The merged stack is opaque if either stack is opaque. The function is called with the set of pixel programs that are being merged into, the set
     /// from the new program, and whether or not the set in the new program are opaque.
     ///
-    pub fn merge(&mut self, merge_with: &ScanlinePlan, merge_stacks: impl Fn(&mut SmallVec<[PixelProgramPlan; 4]>, &SmallVec<[PixelProgramPlan; 4]>, bool)) {
+    pub fn merge(
+        &mut self,
+        merge_with: &ScanlinePlan,
+        merge_stacks: impl Fn(
+            &mut SmallVec<[PixelProgramPlan; 4]>,
+            &SmallVec<[PixelProgramPlan; 4]>,
+            bool,
+        ),
+    ) {
         // Allocate space for the merged spans
         let mut new_spans = Vec::<ScanSpanStack>::with_capacity(self.spans.len());
 
         {
             // Iterate on the current and merged spans, and look for overlaps
-            let mut our_span_iter       = self.spans.drain(..);
-            let mut merge_span_iter     = merge_with.spans.iter().cloned();
+            let mut our_span_iter = self.spans.drain(..);
+            let mut merge_span_iter = merge_with.spans.iter().cloned();
 
-            let mut maybe_our_span      = our_span_iter.next();
-            let mut maybe_merge_span    = merge_span_iter.next();
+            let mut maybe_our_span = our_span_iter.next();
+            let mut maybe_merge_span = merge_span_iter.next();
 
             // We iterate both from left to right, and deal with overlaps
-            while let (Some(our_span), Some(merge_span)) = (&mut maybe_our_span, &mut maybe_merge_span) {
+            while let (Some(our_span), Some(merge_span)) =
+                (&mut maybe_our_span, &mut maybe_merge_span)
+            {
                 if our_span.x_range.end <= merge_span.x_range.start {
                     // our_span is before the merge span
                     new_spans.push(maybe_our_span.take().unwrap());
@@ -424,16 +452,16 @@ impl ScanlinePlan {
                     if merge_span.x_range.start < our_span.x_range.start {
                         // Draw just merge_plan up to our_plan.start
                         new_spans.push(ScanSpanStack {
-                            x_range:    merge_span.x_range.start..our_span.x_range.start,
-                            plan:       merge_span.plan.clone(),
-                            opaque:     merge_span.opaque,
+                            x_range: merge_span.x_range.start..our_span.x_range.start,
+                            plan: merge_span.plan.clone(),
+                            opaque: merge_span.opaque,
                         });
                     } else if our_span.x_range.start < merge_span.x_range.start {
                         // Draw just our_plan up to our_plan.start
                         new_spans.push(ScanSpanStack {
-                            x_range:    our_span.x_range.start..merge_span.x_range.start,
-                            plan:       our_span.plan.clone(),
-                            opaque:     our_span.opaque,
+                            x_range: our_span.x_range.start..merge_span.x_range.start,
+                            plan: our_span.plan.clone(),
+                            opaque: our_span.opaque,
                         });
                     }
 
@@ -442,13 +470,13 @@ impl ScanlinePlan {
                     merge_stacks(&mut merged_program, &merge_span.plan, merge_span.opaque);
 
                     // Create the merged plan
-                    let start   = our_span.x_range.start.max(merge_span.x_range.start);
-                    let end     = our_span.x_range.end.min(merge_span.x_range.end);
+                    let start = our_span.x_range.start.max(merge_span.x_range.start);
+                    let end = our_span.x_range.end.min(merge_span.x_range.end);
 
                     new_spans.push(ScanSpanStack {
-                        x_range:    start..end,
-                        plan:       merged_program,
-                        opaque:     our_span.opaque || merge_span.opaque,
+                        x_range: start..end,
+                        plan: merged_program,
+                        opaque: our_span.opaque || merge_span.opaque,
                     });
 
                     // Continue with the remaining part of the plan
@@ -474,7 +502,7 @@ impl ScanlinePlan {
             while let Some(our_span) = maybe_our_span {
                 new_spans.push(our_span);
                 maybe_our_span = our_span_iter.next();
-            } 
+            }
 
             while let Some(merge_span) = maybe_merge_span {
                 new_spans.push(merge_span);
@@ -511,7 +539,7 @@ impl ScanlinePlan {
     /// The lowest span in a stack is always returned as opaque even if it was originally created as transparent using this function
     ///
     #[inline]
-    pub fn iter_as_stacks<'a>(&'a self) -> impl 'a + Iterator<Item=&'a ScanSpanStack> {
+    pub fn iter_as_stacks<'a>(&'a self) -> impl 'a + Iterator<Item = &'a ScanSpanStack> {
         self.spans.iter()
     }
 
@@ -522,27 +550,30 @@ impl ScanlinePlan {
     /// in these results.
     ///
     #[inline]
-    pub fn iter_as_spans<'a>(&'a self) -> impl 'a + Iterator<Item=ScanSpan> {
+    pub fn iter_as_spans<'a>(&'a self) -> impl 'a + Iterator<Item = ScanSpan> {
         use std::iter;
 
-        self.iter_as_stacks()
-            .flat_map(|span| {
-                let range           = span.x_range();
-                let opaque          = span.is_opaque();
-                let mut programs    = span.programs().filter_map(|program| match program {
-                    PixelProgramPlan::Run(program)              => Some(program),
-                    PixelProgramPlan::StartBlend                => None,
-                    PixelProgramPlan::SourceOver(_)             => None,
-                    PixelProgramPlan::LinearSourceOver(_, _)    => None,
-                    PixelProgramPlan::Blend(_, _)               => None,
-                    PixelProgramPlan::LinearBlend(_, _, _)      => None,
-                });
+        self.iter_as_stacks().flat_map(|span| {
+            let range = span.x_range();
+            let opaque = span.is_opaque();
+            let mut programs = span.programs().filter_map(|program| match program {
+                PixelProgramPlan::Run(program) => Some(program),
+                PixelProgramPlan::StartBlend => None,
+                PixelProgramPlan::SourceOver(_) => None,
+                PixelProgramPlan::LinearSourceOver(_, _) => None,
+                PixelProgramPlan::Blend(_, _) => None,
+                PixelProgramPlan::LinearBlend(_, _, _) => None,
+            });
 
-                // First program is opaque, the rest are transparent
-                let first   = if opaque { ScanSpan::opaque(range.clone(), programs.next().unwrap()) } else { ScanSpan::transparent(range.clone(), programs.next().unwrap()) };
-                let others  = programs.map(move |program| ScanSpan::transparent(range.clone(), program));
+            // First program is opaque, the rest are transparent
+            let first = if opaque {
+                ScanSpan::opaque(range.clone(), programs.next().unwrap())
+            } else {
+                ScanSpan::transparent(range.clone(), programs.next().unwrap())
+            };
+            let others = programs.map(move |program| ScanSpan::transparent(range.clone(), program));
 
-                iter::once(first).chain(others)
-            })
+            iter::once(first).chain(others)
+        })
     }
 }

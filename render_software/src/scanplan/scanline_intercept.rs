@@ -25,7 +25,7 @@ pub struct ScanlineIntercept<'a> {
 ///
 #[derive(Debug)]
 pub struct ScanlineInterceptState<'a> {
-    /// The currently active shapes, with the most recent one 
+    /// The currently active shapes, with the most recent one
     active_shapes: Vec<ScanlineIntercept<'a>>,
 
     /// The current z-floor
@@ -80,9 +80,9 @@ impl<'a> ScanlineInterceptState<'a> {
     ///
     #[inline]
     pub fn new() -> ScanlineInterceptState<'a> {
-        ScanlineInterceptState { 
-            active_shapes:  vec![],
-            z_floor:        i64::MIN,
+        ScanlineInterceptState {
+            active_shapes: vec![],
+            z_floor: i64::MIN,
         }
     }
 
@@ -90,7 +90,7 @@ impl<'a> ScanlineInterceptState<'a> {
     /// The z-index of the lowest opaque item in this state (or `i64::MIN` if there's no floor)
     ///
     #[inline]
-    pub fn z_floor(&self) -> i64 { 
+    pub fn z_floor(&self) -> i64 {
         self.z_floor
     }
 
@@ -107,8 +107,8 @@ impl<'a> ScanlineInterceptState<'a> {
 
         // Binary search until we find a nearby shape
         while min < max {
-            let mid         = (min + max) >> 1;
-            let intercept   = &self.active_shapes[mid];
+            let mid = (min + max) >> 1;
+            let intercept = &self.active_shapes[mid];
 
             if intercept.z_index() < z_index {
                 min = mid + 1;
@@ -164,26 +164,31 @@ impl<'a> ScanlineInterceptState<'a> {
     /// Adds or removes from the active shapes after an intercept
     ///
     #[inline]
-    pub fn add_intercept(&mut self, intercept: &EdgePlanIntercept, transform: &ScanlineTransform, descriptor: Option<&'a ShapeDescriptor>) {
+    pub fn add_intercept(
+        &mut self,
+        intercept: &EdgePlanIntercept,
+        transform: &ScanlineTransform,
+        descriptor: Option<&'a ShapeDescriptor>,
+    ) {
         if let Some(descriptor) = descriptor {
             let (z_index, is_opaque) = (descriptor.z_index, descriptor.is_opaque);
 
             match self.find(z_index, intercept.shape) {
                 Ok(existing_idx) => {
                     // Update the existing shape depending on the direction of the intercept
-                    let existing        = &mut self.active_shapes[existing_idx];
+                    let existing = &mut self.active_shapes[existing_idx];
                     let remove_existing = match intercept.direction {
-                        EdgeInterceptDirection::Toggle          => true,
+                        EdgeInterceptDirection::Toggle => true,
 
-                        EdgeInterceptDirection::DirectionOut    => {
+                        EdgeInterceptDirection::DirectionOut => {
                             existing.count += 1;
                             existing.count == 0
-                        },
+                        }
 
-                        EdgeInterceptDirection::DirectionIn     => {
+                        EdgeInterceptDirection::DirectionIn => {
                             existing.count -= 1;
                             existing.count == 0
-                        },
+                        }
                     };
 
                     if remove_existing {
@@ -196,7 +201,7 @@ impl<'a> ScanlineInterceptState<'a> {
 
                             if existing_idx > 0 {
                                 // TODO: if multiple shapes are on the same z-index, existing_idx might represent a shape below the 'true' z-floor (so this will set the floor too low)
-                                for idx in (0..(existing_idx-1)).rev() {
+                                for idx in (0..(existing_idx - 1)).rev() {
                                     if self.active_shapes[idx].is_opaque() {
                                         self.z_floor = self.active_shapes[idx].z_index();
                                         break;
@@ -210,9 +215,9 @@ impl<'a> ScanlineInterceptState<'a> {
                 Err(following_idx) => {
                     // There's no existing matching shape: just insert a new intercept
                     let count = match intercept.direction {
-                        EdgeInterceptDirection::Toggle          => 1,
-                        EdgeInterceptDirection::DirectionOut    => 1,
-                        EdgeInterceptDirection::DirectionIn     => -1,
+                        EdgeInterceptDirection::Toggle => 1,
+                        EdgeInterceptDirection::DirectionOut => 1,
+                        EdgeInterceptDirection::DirectionIn => -1,
                     };
 
                     // Opaque shapes update the z-floor (note that if an opaque shape has the same z-index as another shape, the z-floor is not enough to tell which is in front)
@@ -220,12 +225,15 @@ impl<'a> ScanlineInterceptState<'a> {
                         self.z_floor = self.z_floor.max(z_index);
                     }
 
-                    self.active_shapes.insert(following_idx, ScanlineIntercept { 
-                        count:      count, 
-                        start_x:    transform.source_x_to_pixels(intercept.x_pos),
-                        shape_id:   intercept.shape,
-                        descriptor: descriptor,
-                    })
+                    self.active_shapes.insert(
+                        following_idx,
+                        ScanlineIntercept {
+                            count: count,
+                            start_x: transform.source_x_to_pixels(intercept.x_pos),
+                            shape_id: intercept.shape,
+                            descriptor: descriptor,
+                        },
+                    )
                 }
             }
         }

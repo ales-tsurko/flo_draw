@@ -1,9 +1,9 @@
-#[cfg(feature="render_term")]
+#[cfg(feature = "render_term")]
 mod term_render {
     use super::super::image_render::*;
-    use super::super::renderer::*;
     use super::super::render_slice::*;
     use super::super::render_target_trait::*;
+    use super::super::renderer::*;
 
     use crate::pixel::*;
 
@@ -13,7 +13,7 @@ mod term_render {
     /// (This version only supports the iterm escape sequence)
     ///
     pub struct TerminalRenderTarget {
-        width:  usize,
+        width: usize,
         height: usize,
     }
 
@@ -22,37 +22,46 @@ mod term_render {
         /// Creates a terminal rendering target
         ///
         pub fn new(width: usize, height: usize) -> Self {
-            TerminalRenderTarget {
-                width, height
-            }
+            TerminalRenderTarget { width, height }
         }
     }
 
     impl<'a, TPixel> RenderTarget<TPixel> for TerminalRenderTarget
     where
-        TPixel: 'static + Send + Copy + Default + AlphaBlend + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
+        TPixel: 'static
+            + Send
+            + Copy
+            + Default
+            + AlphaBlend
+            + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
     {
-        #[inline] fn width(&self) -> usize {
+        #[inline]
+        fn width(&self) -> usize {
             self.width
         }
 
-        #[inline]fn height(&self) -> usize {
+        #[inline]
+        fn height(&self) -> usize {
             self.height
         }
 
-        fn render<TRegionRenderer>(&mut self, region_renderer: TRegionRenderer, source_data: &TRegionRenderer::Source)
-        where
-            TRegionRenderer: Renderer<Region=RenderSlice, Dest=[TPixel]>
+        fn render<TRegionRenderer>(
+            &mut self,
+            region_renderer: TRegionRenderer,
+            source_data: &TRegionRenderer::Source,
+        ) where
+            TRegionRenderer: Renderer<Region = RenderSlice, Dest = [TPixel]>,
         {
-            use base64::engine::{Engine};
             use base64::engine::general_purpose;
+            use base64::engine::Engine;
 
             // Create the png data
             let mut png_data: Vec<u8> = vec![];
 
             // Render as PNG data
             {
-                let mut png_render = PngRenderTarget::from_stream(&mut png_data, self.width, self.height, 2.2);
+                let mut png_render =
+                    PngRenderTarget::from_stream(&mut png_data, self.width, self.height, 2.2);
                 png_render.render(region_renderer, source_data);
             }
 
@@ -67,5 +76,5 @@ mod term_render {
     }
 }
 
-#[cfg(feature="render_term")]
+#[cfg(feature = "render_term")]
 pub use term_render::*;

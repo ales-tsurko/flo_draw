@@ -3,16 +3,18 @@ use super::texture::*;
 
 use gl;
 
-use std::hash::{Hash};
-use std::collections::{HashMap};
-use std::ops::{Deref};
-use std::ffi::{CString};
+use std::collections::HashMap;
+use std::ffi::CString;
+use std::hash::Hash;
+use std::ops::Deref;
 
 ///
 /// A shader program represents a combination of shaders that can be used to perform an actual drawing
 ///
 pub struct ShaderProgram<UniformAttribute>
-where UniformAttribute: Hash {
+where
+    UniformAttribute: Hash,
+{
     /// The shader progam object
     shader_program: gl::types::GLuint,
 
@@ -23,14 +25,16 @@ where UniformAttribute: Hash {
     _attributes: Vec<Vec<gl::types::GLuint>>,
 
     /// The location of the known uniforms for this shader program
-    uniform_attributes: HashMap<UniformAttribute, gl::types::GLint>
+    uniform_attributes: HashMap<UniformAttribute, gl::types::GLint>,
 }
 
-impl<UniformAttribute: Hash+Eq> ShaderProgram<UniformAttribute> {
+impl<UniformAttribute: Hash + Eq> ShaderProgram<UniformAttribute> {
     ///
     /// Creates a shader program from a list of shaders
     ///
-    pub fn from_shaders<ShaderIter: IntoIterator<Item=Shader>>(shaders: ShaderIter) -> ShaderProgram<UniformAttribute> {
+    pub fn from_shaders<ShaderIter: IntoIterator<Item = Shader>>(
+        shaders: ShaderIter,
+    ) -> ShaderProgram<UniformAttribute> {
         unsafe {
             let shaders = shaders.into_iter().collect::<Vec<_>>();
 
@@ -52,8 +56,8 @@ impl<UniformAttribute: Hash+Eq> ShaderProgram<UniformAttribute> {
             }
 
             // Bind the attributes
-            let mut next_attribute_id   = 0;
-            let mut attributes          = vec![];
+            let mut next_attribute_id = 0;
+            let mut attributes = vec![];
 
             for shader in shaders.iter() {
                 let mut shader_attributes = vec![];
@@ -63,7 +67,11 @@ impl<UniformAttribute: Hash+Eq> ShaderProgram<UniformAttribute> {
                     shader_attributes.push(next_attribute_id);
 
                     // Bind this attribute
-                    gl::BindAttribLocation(shader_program, next_attribute_id, attribute_name.as_ptr());
+                    gl::BindAttribLocation(
+                        shader_program,
+                        next_attribute_id,
+                        attribute_name.as_ptr(),
+                    );
 
                     next_attribute_id += 1;
                 }
@@ -73,10 +81,10 @@ impl<UniformAttribute: Hash+Eq> ShaderProgram<UniformAttribute> {
 
             // Generate the resulting shader program
             ShaderProgram {
-                shader_program:     shader_program,
-                _shaders:           shaders,
-                _attributes:        attributes,
-                uniform_attributes: HashMap::new()
+                shader_program: shader_program,
+                _shaders: shaders,
+                _attributes: attributes,
+                uniform_attributes: HashMap::new(),
             }
         }
     }
@@ -84,24 +92,35 @@ impl<UniformAttribute: Hash+Eq> ShaderProgram<UniformAttribute> {
     ///
     /// Retrieves the location of a uniform variable for this progrma
     ///
-    pub fn uniform_location(&mut self, uniform: UniformAttribute, uniform_name: &str) -> Option<gl::types::GLint> {
+    pub fn uniform_location(
+        &mut self,
+        uniform: UniformAttribute,
+        uniform_name: &str,
+    ) -> Option<gl::types::GLint> {
         let shader_program = self.shader_program;
 
-        Some(*self.uniform_attributes
-            .entry(uniform)
-            .or_insert_with(|| {
-                unsafe {
+        Some(
+            *self
+                .uniform_attributes
+                .entry(uniform)
+                .or_insert_with(|| unsafe {
                     let name = CString::new(uniform_name).unwrap();
-                    
+
                     gl::GetUniformLocation(shader_program, name.as_ptr())
-                }
-            }))
+                }),
+        )
     }
 
     ///
     /// Assigns a texture to a particular texture unit and sets its index in a uniform
     ///
-    pub fn use_texture(&mut self, uniform: UniformAttribute, uniform_name: &str, texture: &Texture, texture_num: u8) {
+    pub fn use_texture(
+        &mut self,
+        uniform: UniformAttribute,
+        uniform_name: &str,
+        texture: &Texture,
+        texture_num: u8,
+    ) {
         unsafe {
             // Set the clip texture
             let texture_num = texture_num as gl::types::GLenum;

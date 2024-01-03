@@ -1,19 +1,19 @@
-use flo_draw::*;
 use flo_draw::canvas::*;
+use flo_draw::*;
 
 use std::sync::*;
 
 ///
-/// Example that displays various effects that can be achieved via 
+/// Example that displays various effects that can be achieved via
 /// flo_canvas's text layout functions
 ///
 pub fn main() {
     with_2d_graphics(|| {
-        let lato        = CanvasFontFace::from_slice(include_bytes!("Lato-Regular.ttf"));
-        let lato_bold   = CanvasFontFace::from_slice(include_bytes!("Lato-Bold.ttf"));
+        let lato = CanvasFontFace::from_slice(include_bytes!("Lato-Regular.ttf"));
+        let lato_bold = CanvasFontFace::from_slice(include_bytes!("Lato-Bold.ttf"));
 
         // Create a window
-        let canvas      = create_drawing_window("Text layout example");
+        let canvas = create_drawing_window("Text layout example");
 
         // Various text layout demonstrations
         canvas.draw(|gc| {
@@ -72,7 +72,10 @@ pub fn main() {
         canvas.draw(|gc| {
             // Can align text with all the effects
             gc.begin_line_layout(500.0, 500.0, TextAlignment::Center);
-            gc.layout_text(FontId(1), "Text layout demonstration, with changing ".to_string());
+            gc.layout_text(
+                FontId(1),
+                "Text layout demonstration, with changing ".to_string(),
+            );
             gc.set_font_size(FontId(1), 36.0);
             gc.layout_text(FontId(1), "sizes,".to_string());
             gc.set_font_size(FontId(1), 18.0);
@@ -83,7 +86,7 @@ pub fn main() {
             gc.layout_text(FontId(1), " and center alignment ".to_string());
             gc.draw_text_layout();
 
-            gc.begin_line_layout(1000.0-18.0, 80.0, TextAlignment::Right);
+            gc.begin_line_layout(1000.0 - 18.0, 80.0, TextAlignment::Right);
             gc.layout_text(FontId(1), "Right alignment is supported too".to_string());
             gc.draw_text_layout();
         });
@@ -101,42 +104,64 @@ pub fn main() {
         canvas.draw(|gc| {
             // We can use the measure() and draw() functions to add annotations to the text as we generate the layout
             // font_metrics(em_size) gives some information about a particular font
-            let lato_metrics        = lato.font_metrics(18.0).unwrap();
-            let mut text_layout     = CanvasFontLineLayout::new(&lato, 18.0);
-            
+            let lato_metrics = lato.font_metrics(18.0).unwrap();
+            let mut text_layout = CanvasFontLineLayout::new(&lato, 18.0);
+
             text_layout.add_text("Manual layout allows ");
 
             // 'measure()' interrupts the layout, so measuring half-way between 'f' and 'i' will force the layout to produce no ligature
-            let start_pos   = text_layout.measure();
+            let start_pos = text_layout.measure();
             text_layout.add_text("custom");
-            let end_pos     = text_layout.measure();
+            let end_pos = text_layout.measure();
 
             // start_pos and end_pos show where the word 'custom' began and ended (as well as giving the overall bounding box)
             // CanvasFontLineLayout implements GraphicsContext, so we draw straight to the layout as we're constructing it
             // `align_transform` later on will move our drawing with the text
             text_layout.new_path();
-            text_layout.move_to(start_pos.pos.x() as _, start_pos.pos.y() as f32 + lato_metrics.underline_position.unwrap().offset);
-            text_layout.line_to(end_pos.pos.x() as _, end_pos.pos.y() as f32 + lato_metrics.underline_position.unwrap().offset);
+            text_layout.move_to(
+                start_pos.pos.x() as _,
+                start_pos.pos.y() as f32 + lato_metrics.underline_position.unwrap().offset,
+            );
+            text_layout.line_to(
+                end_pos.pos.x() as _,
+                end_pos.pos.y() as f32 + lato_metrics.underline_position.unwrap().offset,
+            );
             text_layout.stroke_color(Color::Rgba(0.8, 0.6, 0.0, 1.0));
             text_layout.line_width(lato_metrics.underline_position.unwrap().thickness);
             text_layout.stroke();
 
             text_layout.new_path();
-            text_layout.move_to(start_pos.pos.x() as _, start_pos.pos.y() as f32 + lato_metrics.ascender);
-            text_layout.line_to(end_pos.pos.x() as _, end_pos.pos.y() as f32 + lato_metrics.ascender);
+            text_layout.move_to(
+                start_pos.pos.x() as _,
+                start_pos.pos.y() as f32 + lato_metrics.ascender,
+            );
+            text_layout.line_to(
+                end_pos.pos.x() as _,
+                end_pos.pos.y() as f32 + lato_metrics.ascender,
+            );
             text_layout.stroke_color(Color::Rgba(0.8, 0.6, 0.0, 1.0));
             text_layout.line_width(lato_metrics.underline_position.unwrap().thickness);
             text_layout.stroke();
 
             let mid_point = (start_pos.pos + end_pos.pos) * 0.5;
-            text_layout.move_to(mid_point.x() as _, mid_point.y() as f32 + lato_metrics.underline_position.unwrap().offset);
-            text_layout.line_to(mid_point.x() as _, mid_point.y() as f32 + lato_metrics.underline_position.unwrap().offset - 8.0);
+            text_layout.move_to(
+                mid_point.x() as _,
+                mid_point.y() as f32 + lato_metrics.underline_position.unwrap().offset,
+            );
+            text_layout.line_to(
+                mid_point.x() as _,
+                mid_point.y() as f32 + lato_metrics.underline_position.unwrap().offset - 8.0,
+            );
             text_layout.stroke_color(Color::Rgba(0.8, 0.6, 0.0, 1.0));
             text_layout.line_width(2.0);
             text_layout.stroke();
 
             // Even possible to lay out text in text ('layout_text' is from the graphics context, so we wind up performing recursive layout here)
-            text_layout.begin_line_layout(mid_point.x() as _, mid_point.y() as f32-lato_metrics.underline_position.unwrap().offset - 30.0, TextAlignment::Center);
+            text_layout.begin_line_layout(
+                mid_point.x() as _,
+                mid_point.y() as f32 - lato_metrics.underline_position.unwrap().offset - 30.0,
+                TextAlignment::Center,
+            );
             text_layout.layout_text(FontId(1), "here".to_string());
             text_layout.draw_text_layout();
 

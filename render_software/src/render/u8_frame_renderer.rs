@@ -1,10 +1,10 @@
-use super::renderer::*;
-use super::render_slice::*;
 use super::frame_size::*;
+use super::render_slice::*;
+use super::renderer::*;
 
 use crate::pixel::*;
 
-use std::marker::{PhantomData};
+use std::marker::PhantomData;
 use std::sync::*;
 
 ///
@@ -12,18 +12,17 @@ use std::sync::*;
 ///
 pub struct U8FrameRenderer<TPixel, TRegionRenderer>
 where
-    TPixel:             Sized + Send + Default + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
-    TRegionRenderer:    Renderer<Region=RenderSlice, Dest=[TPixel]>,
+    TPixel: Sized + Send + Default + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
+    TRegionRenderer: Renderer<Region = RenderSlice, Dest = [TPixel]>,
 {
-    region_renderer:    TRegionRenderer,
-    pixel:              PhantomData<Mutex<TPixel>>,
+    region_renderer: TRegionRenderer,
+    pixel: PhantomData<Mutex<TPixel>>,
 }
-
 
 impl<TPixel, TRegionRenderer> U8FrameRenderer<TPixel, TRegionRenderer>
 where
-    TPixel:             Sized + Send + Clone + Default + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
-    TRegionRenderer:    Renderer<Region=RenderSlice, Dest=[TPixel]>,
+    TPixel: Sized + Send + Clone + Default + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
+    TRegionRenderer: Renderer<Region = RenderSlice, Dest = [TPixel]>,
 {
     ///
     /// Creates a new frame renderer
@@ -32,23 +31,28 @@ where
     ///
     pub fn new(region_renderer: TRegionRenderer) -> Self {
         Self {
-            region_renderer:    region_renderer,
-            pixel:              PhantomData,
+            region_renderer: region_renderer,
+            pixel: PhantomData,
         }
     }
 }
 
-#[cfg(not(feature="multithreading"))]
-impl<'a, TPixel, TRegionRenderer> Renderer for U8FrameRenderer<TPixel, TRegionRenderer> 
+#[cfg(not(feature = "multithreading"))]
+impl<'a, TPixel, TRegionRenderer> Renderer for U8FrameRenderer<TPixel, TRegionRenderer>
 where
-    TPixel:             Sized + Send + Clone + Default + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
-    TRegionRenderer:    Renderer<Region=RenderSlice, Dest=[TPixel]>,
+    TPixel: Sized + Send + Clone + Default + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
+    TRegionRenderer: Renderer<Region = RenderSlice, Dest = [TPixel]>,
 {
     type Region = GammaFrameSize;
     type Source = TRegionRenderer::Source;
-    type Dest   = [U8RgbaPremultipliedPixel];
+    type Dest = [U8RgbaPremultipliedPixel];
 
-    fn render(&self, region: &GammaFrameSize, source: &TRegionRenderer::Source, dest: &mut [U8RgbaPremultipliedPixel]) {
+    fn render(
+        &self,
+        region: &GammaFrameSize,
+        source: &TRegionRenderer::Source,
+        dest: &mut [U8RgbaPremultipliedPixel],
+    ) {
         const LINES_AT_ONCE: usize = 8;
 
         // Rendering fails if there are insufficient lines to complete
@@ -57,43 +61,60 @@ where
         }
 
         // Cut the destination into chunks to form the lines
-        let chunks      = dest.chunks_mut(region.width*LINES_AT_ONCE);
-        let renderer    = &self.region_renderer;
+        let chunks = dest.chunks_mut(region.width * LINES_AT_ONCE);
+        let renderer = &self.region_renderer;
 
         // Render in chunks of LINES_AT_ONCE lines
-        let mut render_slice    = RenderSlice { width: region.width, y_positions: vec![] };
-        let mut buffer          = vec![TPixel::default(); region.width*LINES_AT_ONCE];
+        let mut render_slice = RenderSlice {
+            width: region.width,
+            y_positions: vec![],
+        };
+        let mut buffer = vec![TPixel::default(); region.width * LINES_AT_ONCE];
 
-        chunks.enumerate().map(|(chunk_idx, chunk)| {
-            let start_y = chunk_idx * LINES_AT_ONCE;
-            let end_y   = if start_y + LINES_AT_ONCE > region.height { region.height } else { start_y + LINES_AT_ONCE };
+        chunks
+            .enumerate()
+            .map(|(chunk_idx, chunk)| {
+                let start_y = chunk_idx * LINES_AT_ONCE;
+                let end_y = if start_y + LINES_AT_ONCE > region.height {
+                    region.height
+                } else {
+                    start_y + LINES_AT_ONCE
+                };
 
-            (start_y..end_y, chunk_idx, chunk)
-        }).for_each(|(y_positions, _chunk_idx, chunk)| {
-            // Write the y positions
-            render_slice.y_positions.clear();
-            render_slice.y_positions.extend(y_positions.map(|idx| idx as f64));
+                (start_y..end_y, chunk_idx, chunk)
+            })
+            .for_each(|(y_positions, _chunk_idx, chunk)| {
+                // Write the y positions
+                render_slice.y_positions.clear();
+                render_slice
+                    .y_positions
+                    .extend(y_positions.map(|idx| idx as f64));
 
-            // Render these lines
-            renderer.render(&render_slice, source, &mut buffer);
+                // Render these lines
+                renderer.render(&render_slice, source, &mut buffer);
 
-            // Convert to the final pixel format
-            TPixel::to_gamma_colorspace(&buffer, chunk, region.gamma);
-        });
-    } 
+                // Convert to the final pixel format
+                TPixel::to_gamma_colorspace(&buffer, chunk, region.gamma);
+            });
+    }
 }
 
-#[cfg(feature="multithreading")]
-impl<'a, TPixel, TRegionRenderer> Renderer for U8FrameRenderer<TPixel, TRegionRenderer> 
+#[cfg(feature = "multithreading")]
+impl<'a, TPixel, TRegionRenderer> Renderer for U8FrameRenderer<TPixel, TRegionRenderer>
 where
-    TPixel:                     Sized + Send + Clone + Default + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
-    TRegionRenderer:            Renderer<Region=RenderSlice, Dest=[TPixel]>,
+    TPixel: Sized + Send + Clone + Default + ToGammaColorSpace<U8RgbaPremultipliedPixel>,
+    TRegionRenderer: Renderer<Region = RenderSlice, Dest = [TPixel]>,
 {
     type Region = GammaFrameSize;
     type Source = TRegionRenderer::Source;
-    type Dest   = [U8RgbaPremultipliedPixel];
+    type Dest = [U8RgbaPremultipliedPixel];
 
-    fn render(&self, region: &GammaFrameSize, source: &TRegionRenderer::Source, dest: &mut [U8RgbaPremultipliedPixel]) {
+    fn render(
+        &self,
+        region: &GammaFrameSize,
+        source: &TRegionRenderer::Source,
+        dest: &mut [U8RgbaPremultipliedPixel],
+    ) {
         const LINES_AT_ONCE: usize = 8;
 
         use rayon::prelude::*;
@@ -104,31 +125,45 @@ where
         }
 
         // Cut the destination into chunks to form the lines
-        let chunks      = dest.par_chunks_mut(region.width*LINES_AT_ONCE);
-        let renderer    = &self.region_renderer;
+        let chunks = dest.par_chunks_mut(region.width * LINES_AT_ONCE);
+        let renderer = &self.region_renderer;
 
         // Render in chunks of LINES_AT_ONCE lines
-        chunks.enumerate().map(|(chunk_idx, chunk)| {
-            let start_y = chunk_idx * LINES_AT_ONCE;
-            let end_y   = if start_y + LINES_AT_ONCE > region.height { region.height } else { start_y + LINES_AT_ONCE };
+        chunks
+            .enumerate()
+            .map(|(chunk_idx, chunk)| {
+                let start_y = chunk_idx * LINES_AT_ONCE;
+                let end_y = if start_y + LINES_AT_ONCE > region.height {
+                    region.height
+                } else {
+                    start_y + LINES_AT_ONCE
+                };
 
-            (start_y..end_y, chunk_idx, chunk)
-        }).for_each_init(|| {
-                let render_slice    = RenderSlice { width: region.width, y_positions: vec![] };
-                let buffer          = vec![TPixel::default(); region.width*LINES_AT_ONCE];
+                (start_y..end_y, chunk_idx, chunk)
+            })
+            .for_each_init(
+                || {
+                    let render_slice = RenderSlice {
+                        width: region.width,
+                        y_positions: vec![],
+                    };
+                    let buffer = vec![TPixel::default(); region.width * LINES_AT_ONCE];
 
-                (render_slice, buffer)
-            }, 
-            |(ref mut render_slice, ref mut buffer), (y_positions, _chunk_idx, chunk)| {
-                // Write the y positions
-                render_slice.y_positions.clear();
-                render_slice.y_positions.extend(y_positions.map(|idx| idx as f64));
+                    (render_slice, buffer)
+                },
+                |(ref mut render_slice, ref mut buffer), (y_positions, _chunk_idx, chunk)| {
+                    // Write the y positions
+                    render_slice.y_positions.clear();
+                    render_slice
+                        .y_positions
+                        .extend(y_positions.map(|idx| idx as f64));
 
-                // Render these lines
-                renderer.render(render_slice, source, buffer);
+                    // Render these lines
+                    renderer.render(render_slice, source, buffer);
 
-                // Convert to the final pixel format
-                TPixel::to_gamma_colorspace(&buffer, chunk, region.gamma);
-            });
-    } 
+                    // Convert to the final pixel format
+                    TPixel::to_gamma_colorspace(&buffer, chunk, region.gamma);
+                },
+            );
+    }
 }

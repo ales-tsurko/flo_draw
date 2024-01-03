@@ -2,8 +2,8 @@
 /// A 16 to 8 bit gamma correction look-up table
 ///
 pub struct U8GammaLut {
-    gamma:          f64,
-    look_up_table:  [u8;65536],
+    gamma: f64,
+    look_up_table: [u8; 65536],
 }
 
 impl U8GammaLut {
@@ -16,7 +16,7 @@ impl U8GammaLut {
 
         // Calculate the 65536 gamma-corrected values
         for idx in 0..65536 {
-            let t = (idx as f64)/65535.0;
+            let t = (idx as f64) / 65535.0;
             let t = t.powf(gamma);
             let t = (t * 255.0) as u8;
 
@@ -24,9 +24,9 @@ impl U8GammaLut {
         }
 
         // Store the final look-up table
-        U8GammaLut { 
-            gamma:          gamma, 
-            look_up_table:  lut 
+        U8GammaLut {
+            gamma: gamma,
+            look_up_table: lut,
         }
     }
 

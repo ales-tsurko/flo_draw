@@ -1,5 +1,5 @@
-use flo_render_software::render::*;
 use flo_render_software::canvas::*;
+use flo_render_software::render::*;
 
 ///
 /// Simple example that displays a canvas window and renders a triangle
@@ -47,9 +47,14 @@ pub fn main() {
     draw.draw_sprite(SpriteId(0));
 
     draw.sprite_transform(SpriteTransform::Identity);
-    draw.sprite_transform(SpriteTransform::Transform2D(Transform2D::translate(300.0, 100.0)));
+    draw.sprite_transform(SpriteTransform::Transform2D(Transform2D::translate(
+        300.0, 100.0,
+    )));
     draw.draw_sprite(SpriteId(0));
 
     // Render to the terminal window
-    render_drawing(&mut TerminalRenderTarget::new(1920, 1080), draw.iter().cloned());
+    render_drawing(
+        &mut TerminalRenderTarget::new(1920, 1080),
+        draw.iter().cloned(),
+    );
 }

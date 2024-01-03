@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 /// Identifies a shape that an edge is a part of (ie, when an edge is crossed, we are entering or leaving this shape)
 ///
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ShapeId(pub (crate) usize);
+pub struct ShapeId(pub(crate) usize);
 
 impl ShapeId {
     ///

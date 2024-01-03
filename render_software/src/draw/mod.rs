@@ -1,14 +1,14 @@
 mod canvas_drawing;
 mod drawing_state;
 mod layer;
-mod prepared_layer;
-mod pixel_programs;
 mod path;
-mod stroke;
-mod transform;
+mod pixel_programs;
+mod prepared_layer;
 mod renderer;
-mod texture;
 mod sprite;
+mod stroke;
+mod texture;
+mod transform;
 
 pub use canvas_drawing::*;
 pub use renderer::*;

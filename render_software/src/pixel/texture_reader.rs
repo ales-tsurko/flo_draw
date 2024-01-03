@@ -1,7 +1,7 @@
 ///
 /// Trait implemented by types that can be read from a texture type
 ///
-pub trait TextureReader<TTexture> : Send + Sync 
+pub trait TextureReader<TTexture>: Send + Sync
 where
     TTexture: Send + Sync,
 {

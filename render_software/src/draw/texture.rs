@@ -26,18 +26,24 @@ where
     /// Performs a texture operation on this canvas drawing
     ///
     #[inline]
-    pub (crate) fn texture(&mut self, texture_id: canvas::TextureId, texture_op: canvas::TextureOp) {
+    pub(crate) fn texture(&mut self, texture_id: canvas::TextureId, texture_op: canvas::TextureOp) {
         use canvas::TextureOp::*;
 
         match texture_op {
-            Create(size, canvas::TextureFormat::Rgba)       => { self.texture_create_rgba(texture_id, size); },
-            Free                                            => { self.texture_free(texture_id); },
-            SetBytes(position, size, bytes)                 => { self.texture_set_bytes(texture_id, position, size, bytes); },
-            SetFromSprite(sprite_id, bounds)                => { /* todo!() */ },
-            CreateDynamicSprite(sprite_id, bounds, size)    => { /* todo!() */ },
-            FillTransparency(alpha)                         => { /* todo!() */ },
-            Copy(target_texture)                            => { /* todo!() */ },
-            Filter(filter)                                  => { /* todo!() */ }
+            Create(size, canvas::TextureFormat::Rgba) => {
+                self.texture_create_rgba(texture_id, size);
+            }
+            Free => {
+                self.texture_free(texture_id);
+            }
+            SetBytes(position, size, bytes) => {
+                self.texture_set_bytes(texture_id, position, size, bytes);
+            }
+            SetFromSprite(sprite_id, bounds) => { /* todo!() */ }
+            CreateDynamicSprite(sprite_id, bounds, size) => { /* todo!() */ }
+            FillTransparency(alpha) => { /* todo!() */ }
+            Copy(target_texture) => { /* todo!() */ }
+            Filter(filter) => { /* todo!() */ }
         }
     }
 
@@ -45,7 +51,7 @@ where
     /// Releases the memory being used by a texture
     ///
     #[inline]
-    pub (crate) fn texture_free(&mut self, texture_id: canvas::TextureId) {
+    pub(crate) fn texture_free(&mut self, texture_id: canvas::TextureId) {
         self.textures.remove(&(self.current_namespace, texture_id));
     }
 
@@ -53,31 +59,42 @@ where
     /// Creates a blank RGBA texture of a particular size
     ///
     #[inline]
-    pub (crate) fn texture_create_rgba(&mut self, texture_id: canvas::TextureId, canvas::TextureSize(width, height): canvas::TextureSize) {
-        let width   = width as usize;
-        let height  = height as usize;
+    pub(crate) fn texture_create_rgba(
+        &mut self,
+        texture_id: canvas::TextureId,
+        canvas::TextureSize(width, height): canvas::TextureSize,
+    ) {
+        let width = width as usize;
+        let height = height as usize;
 
         // Build the texture structure
-        let pixels  = vec![0u8; width * height * 4];
+        let pixels = vec![0u8; width * height * 4];
         let texture = RgbaTexture::new(width, height, pixels);
         let texture = Texture::Rgba(Arc::new(texture));
 
         // Store it, replacing any existing texture with this ID
-        self.textures.insert((self.current_namespace, texture_id), Arc::new(texture));
+        self.textures
+            .insert((self.current_namespace, texture_id), Arc::new(texture));
     }
 
     ///
     /// Sets the bytes for a region of the texture
     ///
     #[inline]
-    pub (crate) fn texture_set_bytes(&mut self, texture_id: canvas::TextureId, canvas::TexturePosition(x, y): canvas::TexturePosition, canvas::TextureSize(width, height): canvas::TextureSize, bytes: Arc<Vec<u8>>) {
+    pub(crate) fn texture_set_bytes(
+        &mut self,
+        texture_id: canvas::TextureId,
+        canvas::TexturePosition(x, y): canvas::TexturePosition,
+        canvas::TextureSize(width, height): canvas::TextureSize,
+        bytes: Arc<Vec<u8>>,
+    ) {
         if let Some(texture) = self.textures.get_mut(&(self.current_namespace, texture_id)) {
             // The texture exists: prepare to write to it
-            let texture     = Arc::make_mut(texture);
-            let x           = x as usize;
-            let y           = y as usize;
-            let width       = width as usize;
-            let height      = height as usize;
+            let texture = Arc::make_mut(texture);
+            let x = x as usize;
+            let y = y as usize;
+            let width = width as usize;
+            let height = height as usize;
 
             // How the bytes are written depend on the format of the texture
             match texture {
@@ -92,11 +109,18 @@ where
     ///
     /// Sets the brush to fill using the specified texture
     ///
-    pub (crate) fn fill_texture(&mut self, texture_id: canvas::TextureId, x1: f32, y1: f32, x2: f32, y2: f32) {
+    pub(crate) fn fill_texture(
+        &mut self,
+        texture_id: canvas::TextureId,
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+    ) {
         // Fetch the state from this object
-        let textures        = &self.textures;
-        let current_state   = &mut self.current_state;
-        let data_cache      = &mut self.program_data_cache;
+        let textures = &self.textures;
+        let current_state = &mut self.current_state;
+        let data_cache = &mut self.program_data_cache;
 
         // Transform the coordiantes to screen coordinates
         let (x1, y1) = current_state.transform.transform_point(x1, y1);
@@ -111,15 +135,27 @@ where
                     let h = rgba_texture.height() as f32;
 
                     let transform = canvas::Transform2D::translate(-x1, -y1);
-                    let transform = canvas::Transform2D::scale(1.0/(x2-x1), 1.0/(y2-y1)) * transform;
+                    let transform =
+                        canvas::Transform2D::scale(1.0 / (x2 - x1), 1.0 / (y2 - y1)) * transform;
                     let transform = canvas::Transform2D::scale(w, h) * transform;
 
-                    debug_assert!((transform.transform_point(x1, y1).0 - 0.0).abs() < 0.01, "{:?} {:?}", transform.transform_point(x1, y1), (0.0, 0.0));
-                    debug_assert!((transform.transform_point(x2, y2).1 - h).abs() < 0.01, "{:?} {:?}", transform.transform_point(x2, y2), (w, h));
+                    debug_assert!(
+                        (transform.transform_point(x1, y1).0 - 0.0).abs() < 0.01,
+                        "{:?} {:?}",
+                        transform.transform_point(x1, y1),
+                        (0.0, 0.0)
+                    );
+                    debug_assert!(
+                        (transform.transform_point(x2, y2).1 - h).abs() < 0.01,
+                        "{:?} {:?}",
+                        transform.transform_point(x2, y2),
+                        (w, h)
+                    );
 
                     // Set as the brush state
                     DrawingState::release_program(&mut current_state.fill_program, data_cache);
-                    current_state.next_fill_brush = Brush::TransparentTexture(Arc::clone(rgba_texture), transform);
+                    current_state.next_fill_brush =
+                        Brush::TransparentTexture(Arc::clone(rgba_texture), transform);
                 }
             }
         }

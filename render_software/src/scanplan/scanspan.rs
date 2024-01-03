@@ -1,21 +1,21 @@
 use crate::pixel::*;
 
-use std::ops::{Range};
 use std::fmt;
+use std::ops::Range;
 
 ///
-/// A ScanSpan indicates which program(s) to apply to a range along a scanline 
+/// A ScanSpan indicates which program(s) to apply to a range along a scanline
 ///
 #[derive(Clone, PartialEq)]
 pub struct ScanSpan {
     /// The pixels to draw on the scanline
-    pub (super) x_range: Range<f64>,
+    pub(super) x_range: Range<f64>,
 
     /// The ID of the program data for the program to run over this range
-    pub (super) program: PixelProgramDataId,
+    pub(super) program: PixelProgramDataId,
 
     /// True if this span is opaque (entirely obscures anything underneath it)
-    pub (super) opaque: bool,
+    pub(super) opaque: bool,
 }
 
 impl ScanSpan {
@@ -27,7 +27,7 @@ impl ScanSpan {
         ScanSpan {
             x_range: range,
             program: program,
-            opaque:  false
+            opaque: false,
         }
     }
 
@@ -39,7 +39,7 @@ impl ScanSpan {
         ScanSpan {
             x_range: range,
             program: program,
-            opaque:  true
+            opaque: true,
         }
     }
 
@@ -55,13 +55,13 @@ impl ScanSpan {
                 ScanSpan {
                     x_range: (self.x_range.start)..pos,
                     program: self.program,
-                    opaque:  self.opaque,
+                    opaque: self.opaque,
                 },
                 ScanSpan {
                     x_range: pos..(self.x_range.end),
                     program: self.program,
-                    opaque:  self.opaque,
-                }
+                    opaque: self.opaque,
+                },
             ))
         } else {
             Err(self)

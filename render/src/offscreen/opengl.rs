@@ -5,7 +5,7 @@ use crate::gl_renderer::*;
 
 use gl;
 
-use std::ffi::{c_void};
+use std::ffi::c_void;
 
 ///
 /// An offscreen renderer that uses OpenGL (whichever variety is initialised)
@@ -21,7 +21,7 @@ pub struct OpenGlOffscreenRenderer {
     main_render_target: RenderTarget,
 
     /// The renderer, as it is set up for the current render target
-    renderer: GlRenderer
+    renderer: GlRenderer,
 }
 
 impl OpenGlOffscreenRenderer {
@@ -30,17 +30,18 @@ impl OpenGlOffscreenRenderer {
     ///
     pub fn new(width: usize, height: usize) -> OpenGlOffscreenRenderer {
         // Create the main render target
-        let main_render_target  = RenderTarget::new(width as u16, height as u16, RenderTargetType::Standard);
+        let main_render_target =
+            RenderTarget::new(width as u16, height as u16, RenderTargetType::Standard);
 
         // Set up the renderer to render to this target
-        let renderer            = GlRenderer::new();
+        let renderer = GlRenderer::new();
 
         // Generate the offscreen renderer
         OpenGlOffscreenRenderer {
-            width:              width,
-            height:             height,
+            width: width,
+            height: height,
             main_render_target: main_render_target,
-            renderer:           renderer
+            renderer: renderer,
         }
     }
 }
@@ -49,7 +50,7 @@ impl OffscreenRenderTarget for OpenGlOffscreenRenderer {
     ///
     /// Sends render actions to this offscreen render target
     ///
-    fn render<ActionIter: IntoIterator<Item=RenderAction>>(&mut self, actions: ActionIter) {
+    fn render<ActionIter: IntoIterator<Item = RenderAction>>(&mut self, actions: ActionIter) {
         unsafe {
             panic_on_gl_error("Preparing to render to offscreen buffer");
 
@@ -59,7 +60,8 @@ impl OffscreenRenderTarget for OpenGlOffscreenRenderer {
 
             // Render to the main render target
             gl::BindFramebuffer(gl::FRAMEBUFFER, *self.main_render_target);
-            self.renderer.prepare_to_render_to_active_framebuffer(self.width, self.height);
+            self.renderer
+                .prepare_to_render_to_active_framebuffer(self.width, self.height);
 
             // Perform the rendering actions
             self.renderer.render(actions);
@@ -77,14 +79,23 @@ impl OffscreenRenderTarget for OpenGlOffscreenRenderer {
     ///
     fn realize(self) -> Vec<u8> {
         // Allocate space for the image
-        let size_bytes  = self.width * self.height * 4;
-        let mut pixels  = vec![0; size_bytes];
+        let size_bytes = self.width * self.height * 4;
+        let mut pixels = vec![0; size_bytes];
 
         // Read the image from the main texture into the pixel array
-        let texture     = self.main_render_target.texture().expect("Offscreen texture");
+        let texture = self
+            .main_render_target
+            .texture()
+            .expect("Offscreen texture");
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, *texture);
-            gl::GetTexImage(gl::TEXTURE_2D, 0, gl::RGBA, gl::UNSIGNED_BYTE, pixels.as_mut_ptr() as *mut c_void);
+            gl::GetTexImage(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                pixels.as_mut_ptr() as *mut c_void,
+            );
 
             panic_on_gl_error("Read offscreen texture");
         }

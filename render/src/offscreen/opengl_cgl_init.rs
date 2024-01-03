@@ -1,15 +1,15 @@
 use super::error::*;
-use super::opengl::*;
 use super::offscreen_trait::*;
+use super::opengl::*;
 
-use gl;
-use flo_render_gl_offscreen::cgl;
 use core_foundation::base::*;
-use core_foundation::string::*;
 use core_foundation::bundle::*;
+use core_foundation::string::*;
+use flo_render_gl_offscreen::cgl;
+use gl;
 
-use std::str;
 use std::ptr;
+use std::str;
 
 ///
 /// An OpenGL offscreen rendering context initialised by CGL
@@ -19,7 +19,7 @@ struct CglOffscreenRenderContext {
     _pixel_format: cgl::CGLPixelFormatObj,
 
     /// The CGL context itself
-    context: cgl::CGLContextObj
+    context: cgl::CGLContextObj,
 }
 
 ///
@@ -28,14 +28,12 @@ struct CglOffscreenRenderContext {
 /// (Based on the similar function found in glutin)
 ///
 fn get_proc_address(addr: &str) -> *const libc::c_void {
-    let symbol_name: CFString       = str::FromStr::from_str(addr).unwrap();
-    let framework_name: CFString    = str::FromStr::from_str("com.apple.opengl").unwrap();
-    let framework                   = unsafe {
-        CFBundleGetBundleWithIdentifier(framework_name.as_concrete_TypeRef())
-    };
-    let symbol                      = unsafe {
-        CFBundleGetFunctionPointerForName(framework, symbol_name.as_concrete_TypeRef())
-    };
+    let symbol_name: CFString = str::FromStr::from_str(addr).unwrap();
+    let framework_name: CFString = str::FromStr::from_str("com.apple.opengl").unwrap();
+    let framework =
+        unsafe { CFBundleGetBundleWithIdentifier(framework_name.as_concrete_TypeRef()) };
+    let symbol =
+        unsafe { CFBundleGetFunctionPointerForName(framework, symbol_name.as_concrete_TypeRef()) };
     symbol as *const _
 }
 
@@ -44,8 +42,8 @@ fn get_proc_address(addr: &str) -> *const libc::c_void {
 ///
 fn to_render_error(error: cgl::CGLError) -> Result<(), RenderInitError> {
     match error {
-        cgl::kCGLNoError    => Ok(()),
-        _                   => Err(RenderInitError::CannotStartGraphicsDriver)
+        cgl::kCGLNoError => Ok(()),
+        _ => Err(RenderInitError::CannotStartGraphicsDriver),
     }
 }
 
@@ -57,19 +55,27 @@ fn to_render_error(error: cgl::CGLError) -> Result<(), RenderInitError> {
 ///
 /// This version is the CGL version for Mac OS X
 ///
-pub fn opengl_initialize_offscreen_rendering() -> Result<impl OffscreenRenderContext, RenderInitError> {
+pub fn opengl_initialize_offscreen_rendering(
+) -> Result<impl OffscreenRenderContext, RenderInitError> {
     unsafe {
         // Try to select a pixel format
-        let pixel_attributes        = vec![
+        let pixel_attributes = vec![
             cgl::kCGLPFAAccelerated,
-            cgl::kCGLPFAOpenGLProfile, 0x3200,
-            cgl::kCGLPFAColorSize, 24,
-            cgl::kCGLPFADepthSize, 16,
-            0
+            cgl::kCGLPFAOpenGLProfile,
+            0x3200,
+            cgl::kCGLPFAColorSize,
+            24,
+            cgl::kCGLPFADepthSize,
+            16,
+            0,
         ];
-        let mut pixel_format        = ptr::null_mut();
-        let mut num_pixel_formats   = 0;
-        let pixel_format_error      = cgl::CGLChoosePixelFormat(pixel_attributes.as_ptr(), &mut pixel_format, &mut num_pixel_formats);
+        let mut pixel_format = ptr::null_mut();
+        let mut num_pixel_formats = 0;
+        let pixel_format_error = cgl::CGLChoosePixelFormat(
+            pixel_attributes.as_ptr(),
+            &mut pixel_format,
+            &mut num_pixel_formats,
+        );
         to_render_error(pixel_format_error)?;
 
         if pixel_format.is_null() {
@@ -77,8 +83,8 @@ pub fn opengl_initialize_offscreen_rendering() -> Result<impl OffscreenRenderCon
         }
 
         // Try to create a context from the pixel format we selected
-        let mut context     = ptr::null_mut();
-        let context_error   = cgl::CGLCreateContext(pixel_format, ptr::null_mut(), &mut context);
+        let mut context = ptr::null_mut();
+        let context_error = cgl::CGLCreateContext(pixel_format, ptr::null_mut(), &mut context);
         to_render_error(context_error)?;
 
         if context.is_null() {
@@ -96,13 +102,16 @@ pub fn opengl_initialize_offscreen_rendering() -> Result<impl OffscreenRenderCon
 
         // Check for errors
         let error = gl::GetError();
-        if error != gl::NO_ERROR { println!("gl::GetError {:x}", error); Err(RenderInitError::ContextDidNotStart)? }
+        if error != gl::NO_ERROR {
+            println!("gl::GetError {:x}", error);
+            Err(RenderInitError::ContextDidNotStart)?
+        }
         assert!(error == gl::NO_ERROR);
 
         // Result is a CGL offscreen context
         Ok(CglOffscreenRenderContext {
-            _pixel_format:  pixel_format,
-            context:        context
+            _pixel_format: pixel_format,
+            context: context,
         })
     }
 }
@@ -115,7 +124,7 @@ pub fn opengl_initialize_offscreen_rendering() -> Result<impl OffscreenRenderCon
 ///
 /// This version is the Metal version for Mac OS X
 ///
-#[cfg(not(feature="osx-metal"))]
+#[cfg(not(feature = "osx-metal"))]
 pub fn initialize_offscreen_rendering() -> Result<impl OffscreenRenderContext, RenderInitError> {
     opengl_initialize_offscreen_rendering()
 }
@@ -129,7 +138,9 @@ impl OffscreenRenderContext for CglOffscreenRenderContext {
     fn create_render_target(&mut self, width: usize, height: usize) -> Self::RenderTarget {
         unsafe {
             let set_context_error = cgl::CGLSetCurrentContext(self.context);
-            if set_context_error != 0 { panic!("CGLSetCurrentContext {:x}", set_context_error); }
+            if set_context_error != 0 {
+                panic!("CGLSetCurrentContext {:x}", set_context_error);
+            }
 
             OpenGlOffscreenRenderer::new(width, height)
         }

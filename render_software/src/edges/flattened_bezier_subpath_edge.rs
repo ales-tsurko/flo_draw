@@ -14,7 +14,11 @@ enum FlattenedBezierSubpathValue {
     None,
 
     /// Is a bezier subpath that hasn't been converted yet, along with the conversion values
-    BezierSubPath { path: BezierSubpath, min_distance: f64, flatness: f64 },
+    BezierSubPath {
+        path: BezierSubpath,
+        min_distance: f64,
+        flatness: f64,
+    },
 
     /// Converted polyline
     Polyline(Polyline),
@@ -25,7 +29,7 @@ enum FlattenedBezierSubpathValue {
 ///
 #[derive(Clone)]
 pub struct FlattenedBezierSubpath {
-    value: FlattenedBezierSubpathValue
+    value: FlattenedBezierSubpathValue,
 }
 
 ///
@@ -33,8 +37,8 @@ pub struct FlattenedBezierSubpath {
 ///
 #[derive(Clone)]
 pub struct FlattenedBezierNonZeroEdge {
-    pub (super) shape_id:   ShapeId,
-    pub (super) path:       FlattenedBezierSubpath,
+    pub(super) shape_id: ShapeId,
+    pub(super) path: FlattenedBezierSubpath,
 }
 
 ///
@@ -42,8 +46,8 @@ pub struct FlattenedBezierNonZeroEdge {
 ///
 #[derive(Clone)]
 pub struct FlattenedBezierEvenOddEdge {
-    pub (super) shape_id:   ShapeId,
-    pub (super) path:       FlattenedBezierSubpath,
+    pub(super) shape_id: ShapeId,
+    pub(super) path: FlattenedBezierSubpath,
 }
 
 impl FlattenedBezierSubpath {
@@ -52,8 +56,12 @@ impl FlattenedBezierSubpath {
     ///
     #[inline]
     pub fn from_subpath(subpath: BezierSubpath, min_distance: f64, flatness: f64) -> Self {
-        FlattenedBezierSubpath { 
-            value: FlattenedBezierSubpathValue::BezierSubPath { path: subpath, min_distance: min_distance, flatness: flatness }
+        FlattenedBezierSubpath {
+            value: FlattenedBezierSubpathValue::BezierSubPath {
+                path: subpath,
+                min_distance: min_distance,
+                flatness: flatness,
+            },
         }
     }
 
@@ -70,14 +78,20 @@ impl FlattenedBezierSubpath {
 
         // Generate the polyline by flattening
         match value {
-            FlattenedBezierSubpathValue::None            => {},
-            FlattenedBezierSubpathValue::Polyline(line)  => { self.value = FlattenedBezierSubpathValue::Polyline(line); },
+            FlattenedBezierSubpathValue::None => {}
+            FlattenedBezierSubpathValue::Polyline(line) => {
+                self.value = FlattenedBezierSubpathValue::Polyline(line);
+            }
 
-            FlattenedBezierSubpathValue::BezierSubPath { path, min_distance, flatness } => {
+            FlattenedBezierSubpathValue::BezierSubPath {
+                path,
+                min_distance,
+                flatness,
+            } => {
                 let mut polyline = path.flatten_to_polyline(min_distance, flatness);
                 polyline.prepare_to_render();
                 self.value = FlattenedBezierSubpathValue::Polyline(polyline);
-            },
+            }
         }
     }
 
@@ -86,19 +100,31 @@ impl FlattenedBezierSubpath {
     ///
     pub fn transform(&self, transform: &canvas::Transform2D) -> Self {
         match &self.value {
-            FlattenedBezierSubpathValue::None => {
-                Self { value: FlattenedBezierSubpathValue::None }
+            FlattenedBezierSubpathValue::None => Self {
+                value: FlattenedBezierSubpathValue::None,
             },
 
-            FlattenedBezierSubpathValue::BezierSubPath { path, min_distance, flatness } => {
+            FlattenedBezierSubpathValue::BezierSubPath {
+                path,
+                min_distance,
+                flatness,
+            } => {
                 let path = path.transform(transform);
-                Self { value: FlattenedBezierSubpathValue::BezierSubPath { path: path, min_distance: *min_distance, flatness: *flatness } }
-            },
+                Self {
+                    value: FlattenedBezierSubpathValue::BezierSubPath {
+                        path: path,
+                        min_distance: *min_distance,
+                        flatness: *flatness,
+                    },
+                }
+            }
 
             FlattenedBezierSubpathValue::Polyline(polyline) => {
                 let mut polyline = polyline.transform_unprepared(transform);
                 polyline.prepare_to_render();
-                Self { value: FlattenedBezierSubpathValue::Polyline(polyline) }
+                Self {
+                    value: FlattenedBezierSubpathValue::Polyline(polyline),
+                }
             }
         }
     }
@@ -115,12 +141,17 @@ impl EdgeDescriptor for FlattenedBezierNonZeroEdge {
     }
 
     #[inline]
-    fn shape(&self) -> ShapeId { self.shape_id }
+    fn shape(&self) -> ShapeId {
+        self.shape_id
+    }
 
     fn bounding_box(&self) -> ((f64, f64), (f64, f64)) {
         match &self.path.value {
             FlattenedBezierSubpathValue::Polyline(line) => line.bounding_box(),
-            _                                           => { debug_assert!(false); ((f64::MIN, f64::MIN), (f64::MAX, f64::MAX)) },
+            _ => {
+                debug_assert!(false);
+                ((f64::MIN, f64::MIN), (f64::MAX, f64::MAX))
+            }
         }
     }
 
@@ -129,23 +160,31 @@ impl EdgeDescriptor for FlattenedBezierNonZeroEdge {
         Arc::new(self.transform_as_self(transform))
     }
 
-    fn intercepts(&self, y_positions: &[f64], output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>]) {
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>],
+    ) {
         match &self.path.value {
             FlattenedBezierSubpathValue::Polyline(line) => {
                 line.intercepts_on_lines(y_positions, output);
             }
 
-            _ => { debug_assert!(false) }
+            _ => {
+                debug_assert!(false)
+            }
         }
     }
 
     fn description(&self) -> String {
-        format!("Non-zero flattened polyline {:?}: {}", 
+        format!(
+            "Non-zero flattened polyline {:?}: {}",
             self.shape_id,
             match &self.path.value {
                 FlattenedBezierSubpathValue::Polyline(polyline) => polyline.description(),
                 _ => format!("not prepared"),
-            })
+            }
+        )
     }
 }
 
@@ -154,10 +193,10 @@ impl FlattenedBezierEvenOddEdge {
     /// Applies a transform to this edge
     ///
     pub fn transform_as_self(&self, transform: &canvas::Transform2D) -> Self {
-        let path            = self.path.transform(transform);
-        let mut new_edge    = Self {
-            shape_id:   self.shape_id,
-            path:       path,
+        let path = self.path.transform(transform);
+        let mut new_edge = Self {
+            shape_id: self.shape_id,
+            path: path,
         };
 
         new_edge.prepare_to_render();
@@ -170,10 +209,10 @@ impl FlattenedBezierNonZeroEdge {
     /// Applies a transform to this edge
     ///
     pub fn transform_as_self(&self, transform: &canvas::Transform2D) -> Self {
-        let path            = self.path.transform(transform);
-        let mut new_edge    = Self {
-            shape_id:   self.shape_id,
-            path:       path,
+        let path = self.path.transform(transform);
+        let mut new_edge = Self {
+            shape_id: self.shape_id,
+            path: path,
         };
 
         new_edge.prepare_to_render();
@@ -192,12 +231,14 @@ impl EdgeDescriptor for FlattenedBezierEvenOddEdge {
     }
 
     #[inline]
-    fn shape(&self) -> ShapeId { self.shape_id }
+    fn shape(&self) -> ShapeId {
+        self.shape_id
+    }
 
     fn bounding_box(&self) -> ((f64, f64), (f64, f64)) {
         match &self.path.value {
             FlattenedBezierSubpathValue::Polyline(line) => line.bounding_box(),
-            _                                           => ((f64::MIN, f64::MIN), (f64::MAX, f64::MAX)),
+            _ => ((f64::MIN, f64::MIN), (f64::MAX, f64::MAX)),
         }
     }
 
@@ -206,7 +247,11 @@ impl EdgeDescriptor for FlattenedBezierEvenOddEdge {
         Arc::new(self.transform_as_self(transform))
     }
 
-    fn intercepts(&self, y_positions: &[f64], output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>]) {
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>],
+    ) {
         match &self.path.value {
             FlattenedBezierSubpathValue::Polyline(line) => {
                 line.intercepts_on_lines(y_positions, output);
@@ -218,16 +263,20 @@ impl EdgeDescriptor for FlattenedBezierEvenOddEdge {
                 }
             }
 
-            _ => { debug_assert!(false) }
+            _ => {
+                debug_assert!(false)
+            }
         }
     }
 
     fn description(&self) -> String {
-        format!("Even-odd flattened polyline {:?}: {}", 
+        format!(
+            "Even-odd flattened polyline {:?}: {}",
             self.shape_id,
             match &self.path.value {
                 FlattenedBezierSubpathValue::Polyline(polyline) => polyline.description(),
                 _ => format!("not prepared"),
-            })
+            }
+        )
     }
 }

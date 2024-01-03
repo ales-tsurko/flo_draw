@@ -9,7 +9,7 @@ use std::sync::*;
 ///
 /// Describes an edge that can be used as part of an edge plan
 ///
-pub trait EdgeDescriptor : Send + Sync {
+pub trait EdgeDescriptor: Send + Sync {
     ///
     /// Creates a clone of this edge as an Arc<dyn EdgeDescriptor>
     ///
@@ -56,50 +56,96 @@ pub trait EdgeDescriptor : Send + Sync {
     /// The API here returns intercepts for as many y-positions as needed: this is more efficient with the
     /// layered design of this renderer as it makes it possible to run the inner loop of the algorithm
     /// multiple times (or even take advantage of vectorisation), and use previous results to derive future
-    /// results. The output list should be as long as the y-positions list and will be entirely overwritten 
+    /// results. The output list should be as long as the y-positions list and will be entirely overwritten
     /// when this returns.
     ///
-    /// As a general convention, end points should not be included in edges, as there should be an attached 
-    /// edge with a start point at the same position. Apex points, where the following edge moves away in 
+    /// As a general convention, end points should not be included in edges, as there should be an attached
+    /// edge with a start point at the same position. Apex points, where the following edge moves away in
     /// the y-axis, also should not be counted as an intercept.
     ///
-    fn intercepts(&self, y_positions: &[f64], output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>]);
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>],
+    );
 
     ///
     /// For debugging, an optional description of this edge
     ///
-    fn description(&self) -> String { "no description".to_string() }
+    fn description(&self) -> String {
+        "no description".to_string()
+    }
 }
 
 impl EdgeDescriptor for Box<dyn EdgeDescriptor> {
-    #[inline] fn clone_as_object(&self) -> Arc<dyn EdgeDescriptor>  { (**self).clone_as_object() }
-    #[inline] fn prepare_to_render(&mut self)                       { (**self).prepare_to_render() }
-    #[inline] fn shape(&self) -> ShapeId                            { (**self).shape() }
-    #[inline] fn bounding_box(&self) -> ((f64, f64), (f64, f64))    { (**self).bounding_box() }
-    #[inline] fn description(&self) -> String                       { (**self).description() }
-    #[inline] fn intercepts(&self, y_positions: &[f64], output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>]) { 
-        (**self).intercepts(y_positions, output) 
+    #[inline]
+    fn clone_as_object(&self) -> Arc<dyn EdgeDescriptor> {
+        (**self).clone_as_object()
     }
-    #[inline] fn transform(&self, transform: &canvas::Transform2D) -> Arc<dyn EdgeDescriptor> {
+    #[inline]
+    fn prepare_to_render(&mut self) {
+        (**self).prepare_to_render()
+    }
+    #[inline]
+    fn shape(&self) -> ShapeId {
+        (**self).shape()
+    }
+    #[inline]
+    fn bounding_box(&self) -> ((f64, f64), (f64, f64)) {
+        (**self).bounding_box()
+    }
+    #[inline]
+    fn description(&self) -> String {
+        (**self).description()
+    }
+    #[inline]
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>],
+    ) {
+        (**self).intercepts(y_positions, output)
+    }
+    #[inline]
+    fn transform(&self, transform: &canvas::Transform2D) -> Arc<dyn EdgeDescriptor> {
         (**self).transform(transform)
     }
 }
 
 impl EdgeDescriptor for Arc<dyn EdgeDescriptor> {
-    #[inline] fn clone_as_object(&self) -> Arc<dyn EdgeDescriptor>  { (**self).clone_as_object() }
-    #[inline] fn shape(&self) -> ShapeId                            { (**self).shape() }
-    #[inline] fn bounding_box(&self) -> ((f64, f64), (f64, f64))    { (**self).bounding_box() }
-    #[inline] fn description(&self) -> String                       { (**self).description() }
-
-    #[inline] fn intercepts(&self, y_positions: &[f64], output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>]) { 
-        (**self).intercepts(y_positions, output) 
+    #[inline]
+    fn clone_as_object(&self) -> Arc<dyn EdgeDescriptor> {
+        (**self).clone_as_object()
+    }
+    #[inline]
+    fn shape(&self) -> ShapeId {
+        (**self).shape()
+    }
+    #[inline]
+    fn bounding_box(&self) -> ((f64, f64), (f64, f64)) {
+        (**self).bounding_box()
+    }
+    #[inline]
+    fn description(&self) -> String {
+        (**self).description()
     }
 
-    #[inline] fn transform(&self, transform: &canvas::Transform2D) -> Arc<dyn EdgeDescriptor> {
+    #[inline]
+    fn intercepts(
+        &self,
+        y_positions: &[f64],
+        output: &mut [SmallVec<[EdgeDescriptorIntercept; 2]>],
+    ) {
+        (**self).intercepts(y_positions, output)
+    }
+
+    #[inline]
+    fn transform(&self, transform: &canvas::Transform2D) -> Arc<dyn EdgeDescriptor> {
         (**self).transform(transform)
     }
 
-    #[inline] fn prepare_to_render(&mut self) { 
+    #[inline]
+    fn prepare_to_render(&mut self) {
         if let Some(inner) = Arc::get_mut(self) {
             // This is the only copy of this object, so we can mutate it
             inner.prepare_to_render();

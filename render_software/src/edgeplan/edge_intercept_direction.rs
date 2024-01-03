@@ -19,14 +19,14 @@ pub enum EdgeInterceptDirection {
     Toggle,
 
     ///
-    /// Adds 1 to the intercept count for the shape when passing the edge left-to-right. If the 
+    /// Adds 1 to the intercept count for the shape when passing the edge left-to-right. If the
     /// intercept count is non-zero after this, then the RHS is inside the shape, otherwise it is
     /// outside.
     ///
     DirectionOut,
 
     ///
-    /// Subtracts 1 from the intercept count for the shape when passing the edge left-to-right. If the 
+    /// Subtracts 1 from the intercept count for the shape when passing the edge left-to-right. If the
     /// intercept count is non-zero after this, then the RHS is inside the shape, otherwise it is
     /// outside.
     ///

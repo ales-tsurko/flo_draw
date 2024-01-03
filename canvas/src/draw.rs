@@ -2,14 +2,14 @@
 //! Actions that can be performed to draw on a canvas
 //!
 
-use crate::transform2d::*;
-use crate::namespace::*;
-use crate::gradient::*;
-use crate::texture::*;
-use crate::sprite::*;
 use crate::color::*;
 use crate::font::*;
+use crate::gradient::*;
+use crate::namespace::*;
 use crate::path::*;
+use crate::sprite::*;
+use crate::texture::*;
+use crate::transform2d::*;
 
 ///
 /// Possible way to join lines
@@ -18,7 +18,7 @@ use crate::path::*;
 pub enum LineJoin {
     Miter,
     Round,
-    Bevel
+    Bevel,
 }
 
 ///
@@ -28,7 +28,7 @@ pub enum LineJoin {
 pub enum LineCap {
     Butt,
     Round,
-    Square
+    Square,
 }
 
 ///
@@ -48,7 +48,7 @@ pub enum BlendMode {
     Multiply,
     Screen,
     Darken,
-    Lighten
+    Lighten,
 }
 
 ///
@@ -60,7 +60,7 @@ pub enum WindingRule {
     NonZero,
 
     /// Every line is an outer edge
-    EvenOdd
+    EvenOdd,
 }
 
 ///
@@ -106,7 +106,7 @@ pub enum SpriteTransform {
     Rotate(f32),
 
     /// Arbitrary 2D transformation
-    Transform2D(Transform2D)
+    Transform2D(Transform2D),
 }
 
 ///
@@ -306,8 +306,8 @@ use flo_curves::bezier::path as curves;
 impl From<curves::LineCap> for LineCap {
     fn from(cap: curves::LineCap) -> LineCap {
         match cap {
-            curves::LineCap::Butt   => LineCap::Butt,
-            curves::LineCap::Round  => LineCap::Round,
+            curves::LineCap::Butt => LineCap::Butt,
+            curves::LineCap::Round => LineCap::Round,
             curves::LineCap::Square => LineCap::Square,
         }
     }
@@ -316,8 +316,8 @@ impl From<curves::LineCap> for LineCap {
 impl Into<curves::LineCap> for LineCap {
     fn into(self) -> curves::LineCap {
         match self {
-            LineCap::Butt   => curves::LineCap::Butt,
-            LineCap::Round  => curves::LineCap::Round,
+            LineCap::Butt => curves::LineCap::Butt,
+            LineCap::Round => curves::LineCap::Round,
             LineCap::Square => curves::LineCap::Square,
         }
     }

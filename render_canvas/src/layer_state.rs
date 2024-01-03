@@ -3,7 +3,7 @@ use super::stroke_settings::*;
 
 use flo_canvas as canvas;
 
-use lyon::tessellation::{FillRule};
+use lyon::tessellation::FillRule;
 
 ///
 /// The current state of a layer
@@ -41,7 +41,7 @@ pub struct LayerState {
     pub base_scale_factor: f32,
 
     /// The current transform to apply when rendering sprites
-    pub sprite_matrix: canvas::Transform2D
+    pub sprite_matrix: canvas::Transform2D,
 }
 
 impl LayerState {
@@ -50,8 +50,12 @@ impl LayerState {
     ///
     pub fn apply_sprite_transform(&mut self, transform: canvas::SpriteTransform) {
         match transform {
-            canvas::SpriteTransform::Identity   => { self.sprite_matrix = canvas::Transform2D::identity(); },
-            other                               => { self.sprite_matrix = canvas::Transform2D::from(other) * self.sprite_matrix; }
+            canvas::SpriteTransform::Identity => {
+                self.sprite_matrix = canvas::Transform2D::identity();
+            }
+            other => {
+                self.sprite_matrix = canvas::Transform2D::from(other) * self.sprite_matrix;
+            }
         }
     }
 
@@ -67,9 +71,13 @@ impl LayerState {
         };
 
         let scale_factor = self.scale_factor as f64;
-        let scale_factor = if scale_factor.abs() < 0.000001 { 0.000001 } else { scale_factor };
+        let scale_factor = if scale_factor.abs() < 0.000001 {
+            0.000001
+        } else {
+            scale_factor
+        };
 
         // The window height is 2.0 - so 2.0/scale_factor = the height of the viewport with the current transformation. We use 4.0 instead of 2.0 to reduce the precision a bit for rendering.
-        (4.0/scale_factor) / viewport_height
+        (4.0 / scale_factor) / viewport_height
     }
 }

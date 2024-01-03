@@ -1,8 +1,8 @@
 use wgpu;
 
+use std::collections::HashMap;
+use std::hash::Hash;
 use std::sync::*;
-use std::hash::{Hash};
-use std::collections::{HashMap};
 
 ///
 /// Trait implemented by types that can be converted to a shader
@@ -23,7 +23,7 @@ where
     device: Arc<wgpu::Device>,
 
     /// The shaders stored in this cache
-    shaders: HashMap<TShader, (Arc<wgpu::ShaderModule>, String, String)>
+    shaders: HashMap<TShader, (Arc<wgpu::ShaderModule>, String, String)>,
 }
 
 impl<TShader> ShaderCache<TShader>
@@ -35,8 +35,8 @@ where
     ///
     pub fn empty(device: Arc<wgpu::Device>) -> ShaderCache<TShader> {
         ShaderCache {
-            device:     device,
-            shaders:    HashMap::new(),
+            device: device,
+            shaders: HashMap::new(),
         }
     }
 
@@ -54,8 +54,12 @@ where
     /// Retrieves the specified shader, if it's in the cache
     ///
     #[inline]
-    pub fn get_shader<'a>(&'a self, shader: &TShader) -> Option<(&'a wgpu::ShaderModule, &'a str, &'a str)> {
-        self.shaders.get(shader)
+    pub fn get_shader<'a>(
+        &'a self,
+        shader: &TShader,
+    ) -> Option<(&'a wgpu::ShaderModule, &'a str, &'a str)> {
+        self.shaders
+            .get(shader)
             .map(|(shader_ref, vertex_name, fragment_name)| {
                 (&**shader_ref, vertex_name.as_str(), fragment_name.as_str())
             })

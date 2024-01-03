@@ -2,19 +2,19 @@ use super::scanline_transform::*;
 
 use crate::edgeplan::*;
 
-use std::{ops::{Range}, process::ExitCode};
+use std::{ops::Range, process::ExitCode};
 
 ///
 /// Describes the location of a shard intercept
 ///
 #[derive(Clone, Copy, Debug)]
 pub struct ShardInterceptLocation {
-    pub shape:          ShapeId,
-    pub direction:      EdgeInterceptDirection,
-    pub lower_x:        f64,
-    pub upper_x:        f64,
-    pub lower_x_floor:  f64,
-    pub upper_x_ceil:   f64,
+    pub shape: ShapeId,
+    pub direction: EdgeInterceptDirection,
+    pub lower_x: f64,
+    pub upper_x: f64,
+    pub lower_x_floor: f64,
+    pub upper_x_ceil: f64,
 }
 
 ///
@@ -26,10 +26,17 @@ pub enum InterceptBlend {
     Solid,
 
     /// This should be alpha-blended using source-over with a linear fade
-    Fade { x_range: Range<f64>, alpha_range: Range<f64> },
+    Fade {
+        x_range: Range<f64>,
+        alpha_range: Range<f64>,
+    },
 
     /// Nest the second blend inside the first blend
-    NestedFade { x_range: Range<f64>, alpha_range: Range<f64>, nested: Box<InterceptBlend>, },
+    NestedFade {
+        x_range: Range<f64>,
+        alpha_range: Range<f64>,
+        nested: Box<InterceptBlend>,
+    },
 }
 
 ///
@@ -58,7 +65,7 @@ pub struct ScanlineShardIntercept<'a> {
 ///
 #[derive(Debug)]
 pub struct ScanlineShardInterceptState<'a> {
-    /// The currently active shapes, with the most recent one 
+    /// The currently active shapes, with the most recent one
     active_shapes: Vec<ScanlineShardIntercept<'a>>,
 
     /// The current z-floor
@@ -67,17 +74,20 @@ pub struct ScanlineShardInterceptState<'a> {
 
 impl ShardInterceptLocation {
     #[inline]
-    pub fn from(intercept: &EdgePlanShardIntercept, transform: &ScanlineTransform) -> ShardInterceptLocation {
+    pub fn from(
+        intercept: &EdgePlanShardIntercept,
+        transform: &ScanlineTransform,
+    ) -> ShardInterceptLocation {
         let lower_x = transform.source_x_to_pixels(intercept.lower_x);
         let upper_x = transform.source_x_to_pixels(intercept.upper_x);
 
         ShardInterceptLocation {
-            shape:          intercept.shape,
-            direction:      intercept.direction,
-            lower_x_floor:  lower_x.floor(),
-            upper_x_ceil:   upper_x.ceil(),
-            lower_x:        lower_x,
-            upper_x:        upper_x,
+            shape: intercept.shape,
+            direction: intercept.direction,
+            lower_x_floor: lower_x.floor(),
+            upper_x_ceil: upper_x.ceil(),
+            lower_x: lower_x,
+            upper_x: upper_x,
         }
     }
 }
@@ -113,9 +123,9 @@ impl<'a> ScanlineShardIntercept<'a> {
     #[inline]
     pub fn is_opaque(&self) -> bool {
         match self.blend {
-            InterceptBlend::Solid               => self.descriptor.is_opaque,
-            InterceptBlend::Fade { .. }         => false,
-            InterceptBlend::NestedFade { .. }   => false,
+            InterceptBlend::Solid => self.descriptor.is_opaque,
+            InterceptBlend::Fade { .. } => false,
+            InterceptBlend::NestedFade { .. } => false,
         }
     }
 
@@ -147,19 +157,26 @@ fn clear_finished_intercepts(blend: &InterceptBlend, xpos: f64) -> InterceptBlen
         InterceptBlend::Solid => InterceptBlend::Solid,
 
         // Fades clear if the x position exceeds the x position
-        InterceptBlend::Fade { x_range, alpha_range } => {
+        InterceptBlend::Fade {
+            x_range,
+            alpha_range,
+        } => {
             if x_range.end <= xpos {
                 InterceptBlend::Solid
             } else {
                 InterceptBlend::Fade {
-                    x_range:        x_range.clone(),
-                    alpha_range:    alpha_range.clone()
+                    x_range: x_range.clone(),
+                    alpha_range: alpha_range.clone(),
                 }
             }
-        },
+        }
 
         // Nested fades work like normal fades, except they process their contents recursively
-        InterceptBlend::NestedFade { x_range, alpha_range, nested } => {
+        InterceptBlend::NestedFade {
+            x_range,
+            alpha_range,
+            nested,
+        } => {
             // Recursively remove any finished intercepts from the nested version
             let nested_cleared = clear_finished_intercepts(&*nested, xpos);
 
@@ -170,15 +187,15 @@ fn clear_finished_intercepts(blend: &InterceptBlend, xpos: f64) -> InterceptBlen
                 if let InterceptBlend::Solid = &nested_cleared {
                     // Changes to a normal fade if the nested intercept is entirely cleared
                     InterceptBlend::Fade {
-                        x_range:        x_range.clone(),
-                        alpha_range:    alpha_range.clone()
+                        x_range: x_range.clone(),
+                        alpha_range: alpha_range.clone(),
                     }
                 } else {
                     // Stays nested
-                    InterceptBlend::NestedFade { 
-                        x_range:        x_range.clone(), 
-                        alpha_range:    alpha_range.clone(), 
-                        nested:         Box::new(nested_cleared)
+                    InterceptBlend::NestedFade {
+                        x_range: x_range.clone(),
+                        alpha_range: alpha_range.clone(),
+                        nested: Box::new(nested_cleared),
                     }
                 }
             }
@@ -192,9 +209,9 @@ impl<'a> ScanlineShardInterceptState<'a> {
     ///
     #[inline]
     pub fn new() -> ScanlineShardInterceptState<'a> {
-        ScanlineShardInterceptState { 
-            active_shapes:  vec![],
-            z_floor:        i64::MIN,
+        ScanlineShardInterceptState {
+            active_shapes: vec![],
+            z_floor: i64::MIN,
         }
     }
 
@@ -202,7 +219,7 @@ impl<'a> ScanlineShardInterceptState<'a> {
     /// The z-index of the lowest opaque item in this state (or `i64::MIN` if there's no floor)
     ///
     #[inline]
-    pub fn z_floor(&self) -> i64 { 
+    pub fn z_floor(&self) -> i64 {
         self.z_floor
     }
 
@@ -219,8 +236,8 @@ impl<'a> ScanlineShardInterceptState<'a> {
 
         // Binary search until we find a nearby shape
         while min < max {
-            let mid         = (min + max) >> 1;
-            let intercept   = &self.active_shapes[mid];
+            let mid = (min + max) >> 1;
+            let intercept = &self.active_shapes[mid];
 
             if intercept.z_index() < z_index {
                 min = mid + 1;
@@ -275,72 +292,75 @@ impl<'a> ScanlineShardInterceptState<'a> {
     ///
     /// Adds or removes from the active shapes after an intercept
     ///
-    pub fn start_intercept(&mut self, intercept: &ShardInterceptLocation, transform: &ScanlineTransform, descriptor: Option<&'a ShapeDescriptor>) {
+    pub fn start_intercept(
+        &mut self,
+        intercept: &ShardInterceptLocation,
+        transform: &ScanlineTransform,
+        descriptor: Option<&'a ShapeDescriptor>,
+    ) {
         if let Some(descriptor) = descriptor {
             let (z_index, is_opaque) = (descriptor.z_index, descriptor.is_opaque);
 
             match self.find(z_index, intercept.shape) {
                 Ok(existing_idx) => {
                     // Update the existing shape depending on the direction of the intercept
-                    let existing        = &mut self.active_shapes[existing_idx];
-                    let was_inside      = existing.count != 0;
+                    let existing = &mut self.active_shapes[existing_idx];
+                    let was_inside = existing.count != 0;
                     match intercept.direction {
-                        EdgeInterceptDirection::Toggle          => {
+                        EdgeInterceptDirection::Toggle => {
                             existing.count = if existing.count != 0 { 1 } else { 0 };
-                        },
+                        }
 
-                        EdgeInterceptDirection::DirectionOut    => {
+                        EdgeInterceptDirection::DirectionOut => {
                             existing.count += 1;
-                        },
+                        }
 
-                        EdgeInterceptDirection::DirectionIn     => {
+                        EdgeInterceptDirection::DirectionIn => {
                             existing.count -= 1;
-                        },
+                        }
                     };
-                    let is_inside       = existing.count != 0;
+                    let is_inside = existing.count != 0;
 
                     if !was_inside && is_inside {
                         // Need to merge with the existing blend
-                        self.active_shapes[existing_idx].blend = match &self.active_shapes[existing_idx].blend {
-                            InterceptBlend::Solid => {
-                                InterceptBlend::Fade {
-                                    x_range:        intercept.lower_x..intercept.upper_x,
-                                    alpha_range:    0.0..1.0,
-                                }
-                            }
+                        self.active_shapes[existing_idx].blend =
+                            match &self.active_shapes[existing_idx].blend {
+                                InterceptBlend::Solid => InterceptBlend::Fade {
+                                    x_range: intercept.lower_x..intercept.upper_x,
+                                    alpha_range: 0.0..1.0,
+                                },
 
-                            InterceptBlend::Fade { .. }         |
-                            InterceptBlend::NestedFade { .. }   => {
-                                let nested = Box::new(self.active_shapes[existing_idx].blend.clone());
+                                InterceptBlend::Fade { .. } | InterceptBlend::NestedFade { .. } => {
+                                    let nested =
+                                        Box::new(self.active_shapes[existing_idx].blend.clone());
 
-                                InterceptBlend::NestedFade {
-                                    x_range:        intercept.lower_x..intercept.upper_x,
-                                    alpha_range:    0.0..1.0,
-                                    nested:         nested,
+                                    InterceptBlend::NestedFade {
+                                        x_range: intercept.lower_x..intercept.upper_x,
+                                        alpha_range: 0.0..1.0,
+                                        nested: nested,
+                                    }
                                 }
-                            }
-                        };
+                            };
                     } else if !is_inside {
                         // Change the shape to fade out
-                        self.active_shapes[existing_idx].blend = match &self.active_shapes[existing_idx].blend {
-                            InterceptBlend::Solid => {
-                                InterceptBlend::Fade {
-                                    x_range:        intercept.lower_x..intercept.upper_x,
-                                    alpha_range:    1.0..0.0,
-                                }
-                            }
+                        self.active_shapes[existing_idx].blend =
+                            match &self.active_shapes[existing_idx].blend {
+                                InterceptBlend::Solid => InterceptBlend::Fade {
+                                    x_range: intercept.lower_x..intercept.upper_x,
+                                    alpha_range: 1.0..0.0,
+                                },
 
-                            InterceptBlend::Fade { .. }         |
-                            InterceptBlend::NestedFade { .. }   => {
-                                let nested = Box::new(self.active_shapes[existing_idx].blend.clone());
+                                InterceptBlend::Fade { .. } | InterceptBlend::NestedFade { .. } => {
+                                    let nested =
+                                        Box::new(self.active_shapes[existing_idx].blend.clone());
 
-                                InterceptBlend::NestedFade {
-                                    x_range:        intercept.lower_x..intercept.upper_x,
-                                    alpha_range:    1.0..0.0,
-                                    nested:         nested,
+                                    InterceptBlend::NestedFade {
+                                        x_range: intercept.lower_x..intercept.upper_x,
+                                        alpha_range: 1.0..0.0,
+                                        nested: nested,
+                                    }
                                 }
-                            }
-                        };
+                            };
 
                         // If the shape matches the current z-floor, update it
                         if is_opaque && z_index == self.z_floor {
@@ -360,18 +380,24 @@ impl<'a> ScanlineShardInterceptState<'a> {
                 Err(following_idx) => {
                     // There's no existing matching shape: just insert a new intercept
                     let count = match intercept.direction {
-                        EdgeInterceptDirection::Toggle          => 1,
-                        EdgeInterceptDirection::DirectionOut    => 1,
-                        EdgeInterceptDirection::DirectionIn     => -1,
+                        EdgeInterceptDirection::Toggle => 1,
+                        EdgeInterceptDirection::DirectionOut => 1,
+                        EdgeInterceptDirection::DirectionIn => -1,
                     };
 
-                    self.active_shapes.insert(following_idx, ScanlineShardIntercept { 
-                        count:      count, 
-                        start_x:    intercept.lower_x,
-                        blend:      InterceptBlend::Fade { x_range: intercept.lower_x..intercept.upper_x, alpha_range: 0.0..1.0 },
-                        shape_id:   intercept.shape,
-                        descriptor: descriptor,
-                    })
+                    self.active_shapes.insert(
+                        following_idx,
+                        ScanlineShardIntercept {
+                            count: count,
+                            start_x: intercept.lower_x,
+                            blend: InterceptBlend::Fade {
+                                x_range: intercept.lower_x..intercept.upper_x,
+                                alpha_range: 0.0..1.0,
+                            },
+                            shape_id: intercept.shape,
+                            descriptor: descriptor,
+                        },
+                    )
                 }
             }
         }
@@ -380,11 +406,15 @@ impl<'a> ScanlineShardInterceptState<'a> {
     ///
     /// A partial intercept has finished
     ///
-    pub fn finish_intercept(&mut self, intercept: &ShardInterceptLocation, descriptor: Option<&'a ShapeDescriptor>) {
+    pub fn finish_intercept(
+        &mut self,
+        intercept: &ShardInterceptLocation,
+        descriptor: Option<&'a ShapeDescriptor>,
+    ) {
         if let Some(descriptor) = descriptor {
             if let Ok(existing_idx) = self.find(descriptor.z_index, intercept.shape) {
-                let active_shape    = &mut self.active_shapes[existing_idx];
-                let new_blend       = clear_finished_intercepts(&active_shape.blend, intercept.upper_x);
+                let active_shape = &mut self.active_shapes[existing_idx];
+                let new_blend = clear_finished_intercepts(&active_shape.blend, intercept.upper_x);
 
                 if active_shape.count != 0 {
                     // If we're inside the shape, we always update to the new blend (which will be solid when all the blends are gone)
@@ -417,79 +447,242 @@ mod test {
 
     #[test]
     fn start_intercept() {
-        let mut intercepts  = ScanlineShardInterceptState::new();
-        let transform       = &ScanlineTransform::for_region(&(-1.0..1.0), 1080);
-        let descriptor      = ShapeDescriptor { programs: smallvec![], is_opaque: true, z_index: 1 };
+        let mut intercepts = ScanlineShardInterceptState::new();
+        let transform = &ScanlineTransform::for_region(&(-1.0..1.0), 1080);
+        let descriptor = ShapeDescriptor {
+            programs: smallvec![],
+            is_opaque: true,
+            z_index: 1,
+        };
 
         // Start entering
-        intercepts.start_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionIn, lower_x: 100.0, upper_x: 120.0, lower_x_floor: 100.0, upper_x_ceil: 120.0 }, &transform, Some(&descriptor));
+        intercepts.start_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionIn,
+                lower_x: 100.0,
+                upper_x: 120.0,
+                lower_x_floor: 100.0,
+                upper_x_ceil: 120.0,
+            },
+            &transform,
+            Some(&descriptor),
+        );
 
         // Should be one intercept, that's a fading intercept
         assert!(intercepts.len() == 1, "{:?}", intercepts);
 
         let fade_in = intercepts.get(0).unwrap();
-        assert!(if let InterceptBlend::Fade { .. } = &fade_in.blend { true } else { false }, "Not fading: {:?}", intercepts);
+        assert!(
+            if let InterceptBlend::Fade { .. } = &fade_in.blend {
+                true
+            } else {
+                false
+            },
+            "Not fading: {:?}",
+            intercepts
+        );
     }
 
     #[test]
     fn inside_shape() {
-        let mut intercepts  = ScanlineShardInterceptState::new();
-        let transform       = &ScanlineTransform::for_region(&(-1.0..1.0), 1080);
-        let descriptor      = ShapeDescriptor { programs: smallvec![], is_opaque: true, z_index: 1 };
+        let mut intercepts = ScanlineShardInterceptState::new();
+        let transform = &ScanlineTransform::for_region(&(-1.0..1.0), 1080);
+        let descriptor = ShapeDescriptor {
+            programs: smallvec![],
+            is_opaque: true,
+            z_index: 1,
+        };
 
         // Enter the shape
-        intercepts.start_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionIn, lower_x: 100.0, upper_x: 120.0, lower_x_floor: 100.0, upper_x_ceil: 120.0 }, &transform, Some(&descriptor));
-        intercepts.finish_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionIn, lower_x: 100.0, upper_x: 120.0, lower_x_floor: 100.0, upper_x_ceil: 120.0 }, Some(&descriptor));
+        intercepts.start_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionIn,
+                lower_x: 100.0,
+                upper_x: 120.0,
+                lower_x_floor: 100.0,
+                upper_x_ceil: 120.0,
+            },
+            &transform,
+            Some(&descriptor),
+        );
+        intercepts.finish_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionIn,
+                lower_x: 100.0,
+                upper_x: 120.0,
+                lower_x_floor: 100.0,
+                upper_x_ceil: 120.0,
+            },
+            Some(&descriptor),
+        );
 
         // Should be one intercept which is solid
         assert!(intercepts.len() == 1, "{:?}", intercepts);
 
         let fade_in = intercepts.get(0).unwrap();
-        assert!(if let InterceptBlend::Solid = &fade_in.blend { true } else { false }, "Not fading: {:?}", intercepts);
+        assert!(
+            if let InterceptBlend::Solid = &fade_in.blend {
+                true
+            } else {
+                false
+            },
+            "Not fading: {:?}",
+            intercepts
+        );
     }
 
     #[test]
     fn leave_intercept() {
-        let mut intercepts  = ScanlineShardInterceptState::new();
-        let transform       = &ScanlineTransform::for_region(&(-1.0..1.0), 1080);
-        let descriptor      = ShapeDescriptor { programs: smallvec![], is_opaque: true, z_index: 1 };
+        let mut intercepts = ScanlineShardInterceptState::new();
+        let transform = &ScanlineTransform::for_region(&(-1.0..1.0), 1080);
+        let descriptor = ShapeDescriptor {
+            programs: smallvec![],
+            is_opaque: true,
+            z_index: 1,
+        };
 
         // Start entering
-        intercepts.start_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionIn, lower_x: 100.0, upper_x: 101.0, lower_x_floor: 100.0, upper_x_ceil: 101.0 }, &transform, Some(&descriptor));
-        intercepts.finish_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionIn, lower_x: 100.0, upper_x: 101.0, lower_x_floor: 100.0, upper_x_ceil: 101.0 }, Some(&descriptor));
+        intercepts.start_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionIn,
+                lower_x: 100.0,
+                upper_x: 101.0,
+                lower_x_floor: 100.0,
+                upper_x_ceil: 101.0,
+            },
+            &transform,
+            Some(&descriptor),
+        );
+        intercepts.finish_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionIn,
+                lower_x: 100.0,
+                upper_x: 101.0,
+                lower_x_floor: 100.0,
+                upper_x_ceil: 101.0,
+            },
+            Some(&descriptor),
+        );
 
         // Start leaving...
-        intercepts.start_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionOut, lower_x: 110.0, upper_x: 150.0, lower_x_floor: 110.0, upper_x_ceil: 150.0 }, &transform, Some(&descriptor));
+        intercepts.start_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionOut,
+                lower_x: 110.0,
+                upper_x: 150.0,
+                lower_x_floor: 110.0,
+                upper_x_ceil: 150.0,
+            },
+            &transform,
+            Some(&descriptor),
+        );
 
         // Should be one intercept, that's a fading intercept
         assert!(intercepts.len() == 1, "{:?}", intercepts);
 
         let fade_in = intercepts.get(0).unwrap();
-        assert!(if let InterceptBlend::Fade { .. } = &fade_in.blend { true } else { false }, "Not fading: {:?}", intercepts);
+        assert!(
+            if let InterceptBlend::Fade { .. } = &fade_in.blend {
+                true
+            } else {
+                false
+            },
+            "Not fading: {:?}",
+            intercepts
+        );
     }
 
     #[test]
     fn start_overlapping_intercept() {
-        let mut intercepts  = ScanlineShardInterceptState::new();
-        let transform       = &ScanlineTransform::for_region(&(-1.0..1.0), 1080);
-        let descriptor      = ShapeDescriptor { programs: smallvec![], is_opaque: true, z_index: 1 };
+        let mut intercepts = ScanlineShardInterceptState::new();
+        let transform = &ScanlineTransform::for_region(&(-1.0..1.0), 1080);
+        let descriptor = ShapeDescriptor {
+            programs: smallvec![],
+            is_opaque: true,
+            z_index: 1,
+        };
 
         // Enter
-        intercepts.start_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionIn, lower_x: 100.0, upper_x: 101.0, lower_x_floor: 100.0, upper_x_ceil: 101.0 }, &transform, Some(&descriptor));
-        intercepts.finish_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionIn, lower_x: 100.0, upper_x: 101.0, lower_x_floor: 100.0, upper_x_ceil: 101.0 }, Some(&descriptor));
+        intercepts.start_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionIn,
+                lower_x: 100.0,
+                upper_x: 101.0,
+                lower_x_floor: 100.0,
+                upper_x_ceil: 101.0,
+            },
+            &transform,
+            Some(&descriptor),
+        );
+        intercepts.finish_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionIn,
+                lower_x: 100.0,
+                upper_x: 101.0,
+                lower_x_floor: 100.0,
+                upper_x_ceil: 101.0,
+            },
+            Some(&descriptor),
+        );
 
         // Start leaving...
-        intercepts.start_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionOut, lower_x: 110.0, upper_x: 150.0, lower_x_floor: 110.0, upper_x_ceil: 150.0 }, &transform, Some(&descriptor));
+        intercepts.start_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionOut,
+                lower_x: 110.0,
+                upper_x: 150.0,
+                lower_x_floor: 110.0,
+                upper_x_ceil: 150.0,
+            },
+            &transform,
+            Some(&descriptor),
+        );
 
-        assert!(intercepts.len() == 1, "Should only be one intercept {:?}", intercepts);
+        assert!(
+            intercepts.len() == 1,
+            "Should only be one intercept {:?}",
+            intercepts
+        );
 
         // Start re-entering
-        intercepts.start_intercept(&ShardInterceptLocation { shape: ShapeId(1), direction: EdgeInterceptDirection::DirectionIn, lower_x: 125.0, upper_x: 170.0, lower_x_floor: 125.0, upper_x_ceil: 170.0 }, &transform, Some(&descriptor));
+        intercepts.start_intercept(
+            &ShardInterceptLocation {
+                shape: ShapeId(1),
+                direction: EdgeInterceptDirection::DirectionIn,
+                lower_x: 125.0,
+                upper_x: 170.0,
+                lower_x_floor: 125.0,
+                upper_x_ceil: 170.0,
+            },
+            &transform,
+            Some(&descriptor),
+        );
 
         // Should be one intercept, which should be a nested intercept
-        assert!(intercepts.len() == 1, "Should be one intercept {:?}", intercepts);
+        assert!(
+            intercepts.len() == 1,
+            "Should be one intercept {:?}",
+            intercepts
+        );
 
         let nested = intercepts.get(0).unwrap();
-        assert!(if let InterceptBlend::NestedFade { .. } = &nested.blend { true } else { false }, "Not nested: {:?}", intercepts);
+        assert!(
+            if let InterceptBlend::NestedFade { .. } = &nested.blend {
+                true
+            } else {
+                false
+            },
+            "Not nested: {:?}",
+            intercepts
+        );
     }
 }

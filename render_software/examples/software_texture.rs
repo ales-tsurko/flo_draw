@@ -1,5 +1,5 @@
-use flo_render_software::render::*;
 use flo_render_software::canvas::*;
+use flo_render_software::render::*;
 
 use std::io;
 
@@ -19,20 +19,25 @@ pub fn main() {
     canvas.center_region(0.0, 0.0, 1000.0, 1000.0);
 
     // Set up the texture
-    let (flo_w, flo_h) = canvas.load_texture(TextureId(0), io::Cursor::new(flo_bytes)).unwrap();
+    let (flo_w, flo_h) = canvas
+        .load_texture(TextureId(0), io::Cursor::new(flo_bytes))
+        .unwrap();
 
-    let ratio   = (flo_w as f32)/(flo_h as f32);
-    let height  = 1000.0 / ratio;
-    let y_pos   = (1000.0-height)/2.0;
+    let ratio = (flo_w as f32) / (flo_h as f32);
+    let height = 1000.0 / ratio;
+    let y_pos = (1000.0 - height) / 2.0;
 
     // Draw a rectangle...
     canvas.new_path();
-    canvas.rect(0.0, y_pos, 1000.0, y_pos+height);
+    canvas.rect(0.0, y_pos, 1000.0, y_pos + height);
 
     // Fill with the texture we just loaded
-    canvas.fill_texture(TextureId(0), 0.0, y_pos+height as f32, 1000.0, y_pos);
+    canvas.fill_texture(TextureId(0), 0.0, y_pos + height as f32, 1000.0, y_pos);
     canvas.fill();
 
     // Render to the terminal window
-    render_drawing(&mut TerminalRenderTarget::new(1920, 1080), canvas.iter().cloned());
+    render_drawing(
+        &mut TerminalRenderTarget::new(1920, 1080),
+        canvas.iter().cloned(),
+    );
 }

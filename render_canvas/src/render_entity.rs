@@ -3,7 +3,7 @@ use super::texture_filter_request::*;
 use flo_canvas as canvas;
 use flo_render as render;
 
-use lyon::tessellation::{VertexBuffers};
+use lyon::tessellation::VertexBuffers;
 
 ///
 /// How a vertex buffer is intended to be used
@@ -13,7 +13,7 @@ pub enum VertexBufferIntent {
     Draw,
 
     /// Will be rendered to the clipping area using EnableClipping
-    Clip
+    Clip,
 }
 
 ///
@@ -36,7 +36,12 @@ pub enum RenderEntity {
     RenderSprite(usize, canvas::SpriteId, canvas::Transform2D),
 
     /// Render a sprite to an off-screen texture and then apply a filter to it
-    RenderSpriteWithFilters(usize, canvas::SpriteId, canvas::Transform2D, Vec<TextureFilterRequest>),
+    RenderSpriteWithFilters(
+        usize,
+        canvas::SpriteId,
+        canvas::Transform2D,
+        Vec<TextureFilterRequest>,
+    ),
 
     /// Updates the transformation matrix for the layer
     SetTransform(canvas::Transform2D),
@@ -60,5 +65,5 @@ pub enum RenderEntity {
     EnableClipping(render::VertexBufferId, render::IndexBufferId, usize),
 
     /// Stop clipping
-    DisableClipping
+    DisableClipping,
 }

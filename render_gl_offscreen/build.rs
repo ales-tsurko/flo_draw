@@ -6,7 +6,7 @@ fn main() {
 #[cfg(target_os = "linux")]
 fn main() {
     use std::env;
-    use std::path::{PathBuf};
+    use std::path::PathBuf;
 
     // Linux build: generate bindings for gbm
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());

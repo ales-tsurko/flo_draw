@@ -1,7 +1,7 @@
 use crate::wgpu::*;
 
 use futures::prelude::*;
-use once_cell::sync::{Lazy};
+use once_cell::sync::Lazy;
 
 use flo_scene::*;
 
@@ -19,13 +19,16 @@ pub fn flo_draw_wgpu_scene_context() -> Arc<SceneContext> {
     // Start a new scene if none was running
     if context.is_none() {
         // Create a new scene context, and run it on the winit thread
-        let scene       = Scene::default();
+        let scene = Scene::default();
         let new_context = scene.context();
 
         // Run on the winit thread
-        winit_thread().send_event(WinitThreadEvent::RunProcess(Box::new(move || async move {
-            scene.run().await;
-        }.boxed())));
+        winit_thread().send_event(WinitThreadEvent::RunProcess(Box::new(move || {
+            async move {
+                scene.run().await;
+            }
+            .boxed()
+        })));
 
         // Store as the active context
         *context = Some(new_context);

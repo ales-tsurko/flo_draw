@@ -1,9 +1,9 @@
-use flo_draw::*;
-use flo_canvas::*;
 use flo_binding::*;
+use flo_canvas::*;
+use flo_draw::*;
 
 use std::thread;
-use std::time::{Duration};
+use std::time::Duration;
 
 ///
 /// Simple example that displays a canvas window, then updates the title once a second
@@ -12,10 +12,10 @@ pub fn main() {
     // 'with_2d_graphics' is used to support operating systems that can't run event loops anywhere other than the main thread
     with_2d_graphics(|| {
         // Create some window properties with a title binding
-        let title                   = bind("Title".to_string());
-        let mut window_properties   = WindowProperties::from(&());
+        let title = bind("Title".to_string());
+        let mut window_properties = WindowProperties::from(&());
 
-        window_properties.title     = BindRef::from(title.clone());
+        window_properties.title = BindRef::from(title.clone());
 
         // Create a window with these properties
         let canvas = create_drawing_window(window_properties);
