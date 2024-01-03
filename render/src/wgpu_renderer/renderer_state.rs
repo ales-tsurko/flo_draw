@@ -262,6 +262,7 @@ impl RendererState {
                 label: Some("run_render_pass"),
                 depth_stencil_attachment: None,
                 color_attachments: &resources.color_attachments(),
+                ..Default::default()
             });
 
             // Run all of the actions

@@ -46,6 +46,7 @@ pub async fn wgpu_initialize_offscreen_rendering(
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
         dx12_shader_compiler: wgpu::Dx12Compiler::default(),
+        ..Default::default()
     });
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {

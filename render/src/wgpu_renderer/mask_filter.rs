@@ -92,13 +92,14 @@ pub(crate) fn mask(
                     b: 0.0,
                     a: 0.0,
                 }),
-                store: true,
+                store: wgpu::StoreOp::Store,
             },
         })];
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("mask"),
             depth_stencil_attachment: None,
             color_attachments: &color_attachments,
+            ..Default::default()
         });
 
         // Draw the vertices

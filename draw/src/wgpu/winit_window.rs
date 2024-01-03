@@ -107,6 +107,7 @@ pub(super) async fn send_actions_to_window<RenderStream, EventPublisher>(
                         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
                             backends: backend,
                             dx12_shader_compiler: wgpu::Dx12Compiler::default(),
+                            ..Default::default()
                         });
                         let surface =
                             unsafe { instance.create_surface(winit_window).expect("wgpu surface") };
